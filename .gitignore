@@ -1,0 +1,71 @@
+# Streamlit secrets (contains API keys - NEVER commit this)
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+*.manifest
+*.spec
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env
+
+# Results and output folders (user-generated content)
+results/
+output/
+exports/
+
+# Uploaded/processed video and audio files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.mp3
+*.wav
+*.m4a
+*.webm
+
+# Whisper model cache
+*.pt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/

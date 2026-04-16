@@ -1,0 +1,11 @@
+streamlit>=1.32.0
+openai-whisper
+opencv-python
+numpy
+pandas
+Pillow
+anthropic
+google-genai
+openai
+python-docx
+PyMuPDF

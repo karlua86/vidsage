@@ -25,6 +25,31 @@ from frames_core import (
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+# ── OpenAI-compatible engines (OpenAI + DeepSeek Flash share one code path) ──
+DEEPSEEK_ENGINE = "DeepSeek Flash (Cheap)"
+DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+
+
+def _is_oai(ai_engine: str) -> bool:
+    """True for engines that speak the OpenAI chat-completions protocol."""
+    return ai_engine in ("OpenAI (Paid)", DEEPSEEK_ENGINE)
+
+
+def _oai_client(ai_engine: str, api_key: str):
+    from openai import OpenAI
+    if ai_engine == DEEPSEEK_ENGINE:
+        return OpenAI(api_key=api_key, base_url=DEEPSEEK_BASE_URL)
+    return OpenAI(api_key=api_key)
+
+
+def _oai_model(ai_engine: str, size: str = "main") -> str:
+    """size: 'main' = full analysis, 'small' = cheap helper calls (cleanup, chapters, tags)."""
+    if ai_engine == DEEPSEEK_ENGINE:
+        return "deepseek-flash"          # one model: vision-capable, 1M context
+    return "gpt-4o-mini" if size == "small" else "gpt-4o"
+
+
+
 def extract_audio(video_path: str, audio_path: str):
     """Extract mono 16kHz WAV from video using ffmpeg."""
     subprocess.run(
@@ -651,7 +676,7 @@ def recommended_frames(duration_sec: float, frame_mode: str, ai_engine: str) -> 
     else:
         count = max(8, round(minutes / 3))
 
-    if ai_engine in ("Claude (Paid)", "OpenAI (Paid)"):
+    if ai_engine == "Claude (Paid)" or _is_oai(ai_engine):
         ceiling = 70 if duration_sec > 10_800 else (55 if duration_sec > 3_600 else 40)
     else:  # Gemini
         ceiling = 140 if duration_sec > 10_800 else (110 if duration_sec > 3_600 else 80)
@@ -918,11 +943,11 @@ TRANSCRIPT TO CORRECT:
             messages=[{"role": "user", "content": prompt}],
         )
         cleaned_timestamped = response.content[0].text.strip()
-    elif ai_engine == "OpenAI (Paid)":
+    elif _is_oai(ai_engine):
         from openai import OpenAI as _OAI
-        _oc = _OAI(api_key=openai_key)
+        _oc = _oai_client(ai_engine, openai_key)
         _or = _oc.chat.completions.create(
-            model="gpt-4o-mini",
+            model=_oai_model(ai_engine, "small"),
             max_tokens=8192,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1003,11 +1028,11 @@ TRANSCRIPT:{_sample_note}
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.content[0].text.strip()
-    elif ai_engine == "OpenAI (Paid)":
+    elif _is_oai(ai_engine):
         from openai import OpenAI as _OAI
-        _oc = _OAI(api_key=openai_key)
+        _oc = _oai_client(ai_engine, openai_key)
         _or = _oc.chat.completions.create(
-            model="gpt-4o-mini",
+            model=_oai_model(ai_engine, "small"),
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1083,9 +1108,9 @@ If something is not covered in the video, say so clearly."""
         )
         return response.content[0].text.strip()
 
-    elif ai_engine == "OpenAI (Paid)":
+    elif _is_oai(ai_engine):
         from openai import OpenAI as _OAI
-        _oc = _OAI(api_key=openai_key)
+        _oc = _oai_client(ai_engine, openai_key)
 
         messages = []
         messages.append({"role": "system", "content": system})
@@ -1095,7 +1120,7 @@ If something is not covered in the video, say so clearly."""
                          if not chat_history else question})
 
         _or = _oc.chat.completions.create(
-            model="gpt-4o-mini",
+            model=_oai_model(ai_engine, "small"),
             max_tokens=1024,
             messages=messages,
         )
@@ -1788,6 +1813,7 @@ def _slide_phash(b64_str: str) -> np.ndarray:
 _SLIDE_BUDGET = {
     "Claude (Paid)": 16 * 1024 * 1024,   # 16 MB  (API hard limit ~20 MB)
     "OpenAI (Paid)": 16 * 1024 * 1024,   # 16 MB
+    DEEPSEEK_ENGINE: 16 * 1024 * 1024,   # 16 MB (limit is 32 MiB/image, 600 images)
     "Gemini (Free)": 20 * 1024 * 1024,   # 20 MB  (Gemini is more lenient)
 }
 
@@ -2211,11 +2237,11 @@ def generate_pkm_note(video_name: str, video_type: str, duration: float,
             messages=[{"role": "user", "content": prompt}],
         )
         raw = response.content[0].text.strip()
-    elif ai_engine == "OpenAI (Paid)":
+    elif _is_oai(ai_engine):
         from openai import OpenAI as _OAI
-        _oc = _OAI(api_key=openai_key)
+        _oc = _oai_client(ai_engine, openai_key)
         _or = _oc.chat.completions.create(
-            model="gpt-4o-mini",
+            model=_oai_model(ai_engine, "small"),
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -2632,10 +2658,10 @@ def analyze_with_gemini(timestamped_transcript, frames, timestamps, duration, ap
 def analyze_with_openai(timestamped_transcript, frames, timestamps, duration, api_key, video_type,
                         output_language: str = "English",
                         slide_images: list[str] | None = None,
-                        slide_sections: list[dict] | None = None):
-    """Send frames + optional slides + timestamped transcript to OpenAI GPT-4o."""
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key)
+                        slide_sections: list[dict] | None = None,
+                        ai_engine: str = "OpenAI (Paid)"):
+    """Send frames + optional slides + timestamped transcript to GPT-4o (or DeepSeek Flash)."""
+    client = _oai_client(ai_engine, api_key)
     lang_instruction = OUTPUT_LANGUAGES.get(output_language, OUTPUT_LANGUAGES["English"])
 
     content = []
@@ -2688,7 +2714,7 @@ def analyze_with_openai(timestamped_transcript, frames, timestamps, duration, ap
         output_language_instruction=lang_instruction)})
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model=_oai_model(ai_engine, "main"),
         max_tokens=16384,   # GPT-4o supports up to 16 384 output tokens
         messages=[{"role": "user", "content": content}],
     )
@@ -2885,12 +2911,13 @@ with st.sidebar:
     _sidebar_section("🤖 AI Engine")
     ai_engine = st.radio(
         "Choose analysis engine:",
-        options=["Gemini (Free)", "Claude (Paid)", "OpenAI (Paid)"],
+        options=["Gemini (Free)", "Claude (Paid)", "OpenAI (Paid)", DEEPSEEK_ENGINE],
         index=1,
         captions=[
             "Google Gemini — free tier, 1,500 req/day",
             "Anthropic Claude — ~$0.08/video",
             "OpenAI GPT-4o — ~$0.10/video",
+            "DeepSeek V4.1 Flash — ~$0.01–0.02/video, reads images",
         ],
     )
 
@@ -2906,6 +2933,13 @@ with st.sidebar:
                                    help="Loaded from .streamlit/secrets.toml")
         gemini_key = ""
         openai_key = ""
+    elif ai_engine == DEEPSEEK_ENGINE:
+        default_deepseek = st.secrets.get("DEEPSEEK_API_KEY", "")
+        # Shares the OpenAI-compatible code path, so the key travels in `openai_key`.
+        openai_key = st.text_input("DeepSeek API Key", value=default_deepseek, type="password",
+                                   help="Get key at platform.deepseek.com")
+        claude_key = ""
+        gemini_key = ""
     else:  # OpenAI
         default_openai = st.secrets.get("OPENAI_API_KEY", "")
         openai_key = st.text_input("OpenAI API Key", value=default_openai, type="password",
@@ -2915,7 +2949,7 @@ with st.sidebar:
 
     active_key = (
         gemini_key if ai_engine == "Gemini (Free)"
-        else openai_key if ai_engine == "OpenAI (Paid)"
+        else openai_key if _is_oai(ai_engine)
         else claude_key
     )
 
@@ -3482,12 +3516,12 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                             video_type, _out_lang,
                             slide_images=_use_s or None,
                             slide_sections=_use_sc or None)
-                    elif ai_engine == "OpenAI (Paid)":
+                    elif _is_oai(ai_engine):
                         _new_expl = analyze_with_openai(
                             _cur_ts, frames, frame_ts, duration, openai_key,
                             video_type, _out_lang,
                             slide_images=_use_s or None,
-                            slide_sections=_use_sc or None)
+                            slide_sections=_use_sc or None, ai_engine=ai_engine)
                     else:
                         _new_expl = analyze_with_claude(
                             _cur_ts, frames, frame_ts, duration, claude_key,
@@ -3825,10 +3859,10 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                         new_explanation = analyze_with_gemini(
                             edited_ts, frames, frame_ts,
                             duration, gemini_key, video_type, _out_lang_ts)
-                    elif ai_engine == "OpenAI (Paid)":
+                    elif _is_oai(ai_engine):
                         new_explanation = analyze_with_openai(
                             edited_ts, frames, frame_ts,
-                            duration, openai_key, video_type, _out_lang_ts)
+                            duration, openai_key, video_type, _out_lang_ts, ai_engine=ai_engine)
                     else:
                         new_explanation = analyze_with_claude(
                             edited_ts, frames, frame_ts,
@@ -3908,11 +3942,11 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                                 _pr = _gc.models.generate_content(
                                     model="gemini-2.0-flash", contents=pkm_prompt)
                                 new_pkm = _pr.text.strip()
-                            elif ai_engine == "OpenAI (Paid)" and openai_key:
+                            elif _is_oai(ai_engine) and openai_key:
                                 from openai import OpenAI as _OAI
-                                _oc = _OAI(api_key=openai_key)
+                                _oc = _oai_client(ai_engine, openai_key)
                                 _or = _oc.chat.completions.create(
-                                    model="gpt-4o-mini", max_tokens=4096,
+                                    model=_oai_model(ai_engine, "small"), max_tokens=4096,
                                     messages=[{"role": "user", "content": pkm_prompt}])
                                 new_pkm = _or.choices[0].message.content.strip()
                             else:
@@ -4063,11 +4097,11 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                                 _cur_ts_txt, sel_frames, sel_ts,
                                 duration, gemini_key, video_type,
                                 st.session_state.get("output_language", "English"))
-                        elif ai_engine == "OpenAI (Paid)":
+                        elif _is_oai(ai_engine):
                             new_expl = analyze_with_openai(
                                 _cur_ts_txt, sel_frames, sel_ts,
                                 duration, openai_key, video_type,
-                                st.session_state.get("output_language", "English"))
+                                st.session_state.get("output_language", "English"), ai_engine=ai_engine)
                         else:
                             new_expl = analyze_with_claude(
                                 _cur_ts_txt, sel_frames, sel_ts,
@@ -4431,7 +4465,8 @@ def process_one_video(video_file, video_name: str, status_container,
         # 5. AI analysis
         engine_label = (
             "Gemini" if ai_engine == "Gemini (Free)"
-            else "OpenAI" if ai_engine == "OpenAI (Paid)"
+            else "DeepSeek Flash" if ai_engine == DEEPSEEK_ENGINE
+            else "OpenAI" if _is_oai(ai_engine)
             else "Claude"
         )
         _slide_note = (f" + {len(slide_images)} slide(s)" if slide_images else "")
@@ -4440,10 +4475,10 @@ def process_one_video(video_file, video_name: str, status_container,
             explanation = analyze_with_gemini(
                 timestamped_transcript, frames, frame_ts, duration, gemini_key, video_type,
                 output_language, slide_images=slide_images, slide_sections=slide_sections)
-        elif ai_engine == "OpenAI (Paid)":
+        elif _is_oai(ai_engine):
             explanation = analyze_with_openai(
                 timestamped_transcript, frames, frame_ts, duration, openai_key, video_type,
-                output_language, slide_images=slide_images, slide_sections=slide_sections)
+                output_language, slide_images=slide_images, slide_sections=slide_sections, ai_engine=ai_engine)
         else:
             explanation = analyze_with_claude(
                 timestamped_transcript, frames, frame_ts, duration, claude_key, video_type,
@@ -6275,14 +6310,13 @@ if _mode_key == "History":
                                             slide_images=_hist_b64_ready or None,
                                             slide_sections=st.session_state.get(f"hist_slide_sections_{stamp}"),
                                         )
-                                    elif ai_engine == "OpenAI (Paid)":
+                                    elif _is_oai(ai_engine):
                                         _new_expl = analyze_with_openai(
                                             _ts, _rd["frames"], _rd["frame_ts"],
                                             _dur, openai_key, _vid_type,
                                             _hist_lang,
                                             slide_images=_hist_b64_ready or None,
-                                            slide_sections=st.session_state.get(f"hist_slide_sections_{stamp}"),
-                                        )
+                                            slide_sections=st.session_state.get(f"hist_slide_sections_{stamp}"), ai_engine=ai_engine)
                                     else:
                                         _new_expl = analyze_with_claude(
                                             _ts, _rd["frames"], _rd["frame_ts"],

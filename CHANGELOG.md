@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.2.0 — 2026-10-06
+
+### Added
+- **DeepSeek Flash (Cheap)** AI engine — DeepSeek V4.1 Flash via its OpenAI-compatible API
+  (model `deepseek-flash`, accepts images, 1M-token context). Roughly $0.01–0.02 per video,
+  versus ~$0.08 for Claude and ~$0.10 for GPT-4o. Add `DEEPSEEK_API_KEY` to
+  `.streamlit/secrets.toml` or paste it in the sidebar. `DEEPSEEK_BASE_URL` can override the endpoint.
+  Cleanup, chapters, Q&A and tags use the same model.
+- **`start_vidsage.bat`** — generic Windows launcher: uses `venv` if present, installs requirements
+  on first run, warns if FFmpeg is missing, starts the app.
+
 ## v1.1.0 — 2026-10-06
 
 ### Added

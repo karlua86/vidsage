@@ -6,11 +6,13 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ---
 
-## 🆕 What's new in v1.1
+## 🆕 What's new in v1.1 / v1.2
 
 - **✂️ Time Range** — analyse only part of a long video (Start/End in the sidebar). Timestamps stay on the original timeline.
 - **🧠 Smarter frame de-duplication** — different slides on a white background are no longer mistaken for duplicates.
+- **💸 DeepSeek Flash engine (v1.2)** — a much cheaper alternative to Claude/OpenAI that also reads video frames.
 - **🤖 Use VidSage from Claude Code** — new `watch.py` command-line tool + ready-made skill, so Claude can "watch" a video (YouTube captions first, Whisper fallback). See [below](#use-vidsage-from-claude-code-watchpy).
+- **🚀 `start_vidsage.bat`** — double-click launcher for Windows.
 - **🐛 Fixes** — *Dedup aggressiveness* labels were backwards; `yt-dlp` and `youtube-transcript-api` were missing from `requirements.txt`.
 
 Full details in [CHANGELOG.md](CHANGELOG.md).
@@ -29,6 +31,7 @@ Full details in [CHANGELOG.md](CHANGELOG.md).
 - **Gemini (Free)** — Google's free tier, great for long videos
 - **Claude (Paid)** — Anthropic's Claude Sonnet, best quality
 - **OpenAI (Paid)** — GPT-4o vision
+- **DeepSeek Flash (Cheap)** — DeepSeek V4.1 Flash, reads images too, roughly a cent or two per video
 
 ### 📄 What You Get
 - **Explanation** — structured breakdown: Overview, Key Concepts, Detailed Section-by-Section Analysis, Key Takeaways, Summary
@@ -97,6 +100,8 @@ streamlit run app.py
 ```
 Opens at **http://localhost:8501**
 
+> 💡 **Windows shortcut:** double-click `start_vidsage.bat` instead. It uses the `venv` folder if present, installs the requirements on first run if they're missing, warns if FFmpeg isn't installed, and starts the app.
+
 ---
 
 ## 🔑 API Keys
@@ -108,6 +113,7 @@ VidSage requires an API key for the AI analysis step. Transcription (Whisper) is
 | Gemini | [aistudio.google.com](https://aistudio.google.com) | Free tier available |
 | Claude | [console.anthropic.com](https://console.anthropic.com) | Pay per use |
 | OpenAI | [platform.openai.com](https://platform.openai.com) | Pay per use |
+| DeepSeek | [platform.deepseek.com](https://platform.deepseek.com) | Pay per use (cheapest) |
 
 Keys are entered in the app sidebar — never stored in code.
 
@@ -116,6 +122,7 @@ Keys are entered in the app sidebar — never stored in code.
 GEMINI_API_KEY = "your-key-here"
 ANTHROPIC_API_KEY = "your-key-here"
 OPENAI_API_KEY = "your-key-here"
+DEEPSEEK_API_KEY = "your-key-here"
 ```
 
 ---

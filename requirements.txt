@@ -9,5 +9,5 @@ google-genai
 openai
 python-docx
 PyMuPDF
-yt-dlp
+yt-dlp>=2026.8.19
 youtube-transcript-api

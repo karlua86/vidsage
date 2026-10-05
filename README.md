@@ -204,6 +204,9 @@ After analysis, VidSage saves the following to your results folder:
 **Gemini quota exhausted**
 → Free tier has daily limits; add billing credits at [console.cloud.google.com](https://console.cloud.google.com)
 
+**YouTube / online video download fails (HTTP 403 or "unable to download")**
+→ YouTube changes often and old `yt-dlp` versions stop working. Run `python -m pip install -U yt-dlp` and try again.
+
 **FFmpeg not found**
 → Run `winget install ffmpeg` and restart your terminal
 

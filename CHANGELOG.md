@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.4 — 2026-10-06
+
+### Fixed
+- YouTube/online downloads failing with **HTTP 403**: caused by an outdated `yt-dlp`. `requirements.txt` now
+  requires `yt-dlp>=2026.8.19`, and the README troubleshooting section explains `pip install -U yt-dlp`.
+  Verified downloading through VidSage's own downloader after upgrading.
+
 ## v1.2.3 — 2026-10-06
 
 ### Fixed

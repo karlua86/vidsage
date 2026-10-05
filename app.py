@@ -25,6 +25,18 @@ from frames_core import (
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def _secret(name: str) -> str:
+    """Read a key from .streamlit/secrets.toml; never crash the app if the file is missing or
+    malformed (e.g. a key pasted without quotes) — show a hint in the sidebar instead."""
+    try:
+        return st.secrets.get(name, "")
+    except Exception as exc:
+        st.sidebar.warning(
+            f"Couldn't read .streamlit/secrets.toml ({type(exc).__name__}). Each line must look like "
+            f'KEY = "value" (with quotes). Paste your key below instead.')
+        return ""
+
+
 # ── OpenAI-compatible engines (OpenAI + DeepSeek Flash share one code path) ──
 DEEPSEEK_ENGINE = "DeepSeek Flash (Cheap)"
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -1198,7 +1210,7 @@ def _md_normalize(line: str) -> str:
     line = re.sub(r'^(\s*)[\u2700-\u27bf]\s*', r'\1- ', line)
 
     # 4. Emoji (📌🎯💡 etc.) at start of line → bullet
-    line = re.sub(u'^(\\s*)[\U0001F000-\U0001FFFF]\s*', r'\1- ', line)
+    line = re.sub(u'^(\\s*)[\U0001F000-\U0001FFFF]\\s*', r'\1- ', line)
 
     # 5. Strip ALL remaining emoji & dingbats from anywhere in the line
     #    These show as □ in SimHei/SimSun — better to remove them entirely
@@ -2927,31 +2939,31 @@ with st.sidebar:
             "Google Gemini — free tier, 1,500 req/day",
             "Anthropic Claude — ~$0.10–0.30/video",
             "OpenAI GPT-4o — ~$0.07–0.20/video",
-            "DeepSeek V4.1 Flash — ~$0.01–0.04/video, reads images",
+            "DeepSeek V4.1 Flash — ~$0.01–0.03/video, reads images",
         ],
     )
 
     if ai_engine == "Gemini (Free)":
-        default_gemini = st.secrets.get("GEMINI_API_KEY", "")
+        default_gemini = _secret("GEMINI_API_KEY")
         gemini_key = st.text_input("Gemini API Key", value=default_gemini, type="password",
                                    help="Get free key at aistudio.google.com")
         claude_key = ""
         openai_key = ""
     elif ai_engine == "Claude (Paid)":
-        default_claude = st.secrets.get("ANTHROPIC_API_KEY", "")
+        default_claude = _secret("ANTHROPIC_API_KEY")
         claude_key = st.text_input("Anthropic API Key", value=default_claude, type="password",
                                    help="Loaded from .streamlit/secrets.toml")
         gemini_key = ""
         openai_key = ""
     elif ai_engine == DEEPSEEK_ENGINE:
-        default_deepseek = st.secrets.get("DEEPSEEK_API_KEY", "")
+        default_deepseek = _secret("DEEPSEEK_API_KEY")
         # Shares the OpenAI-compatible code path, so the key travels in `openai_key`.
         openai_key = st.text_input("DeepSeek API Key", value=default_deepseek, type="password",
                                    help="Get key at platform.deepseek.com")
         claude_key = ""
         gemini_key = ""
     else:  # OpenAI
-        default_openai = st.secrets.get("OPENAI_API_KEY", "")
+        default_openai = _secret("OPENAI_API_KEY")
         openai_key = st.text_input("OpenAI API Key", value=default_openai, type="password",
                                    help="Get key at platform.openai.com")
         claude_key = ""

@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.3 — 2026-10-06
+
+### Fixed
+- A malformed `.streamlit/secrets.toml` (for example a key pasted without quotes) no longer
+  crashes the whole app on startup; VidSage shows a hint in the sidebar and lets you paste the key.
+- Removed a Python `SyntaxWarning` (invalid `\s` escape) in the Word/PDF bullet clean-up code.
+
+### Verified
+- DeepSeek Flash measured on a real run (10-min podcast, 2,299-word transcript, 8 frames):
+  analysis + chapters + PKM note used 20,702 input / 5,211 output tokens = about **$0.006
+  off-peak / $0.013 peak**. Sidebar estimate updated to ~$0.01–0.03 per video (10–60 min).
+  Thinking mode confirmed disabled; image `detail` field accepted.
+
 ## v1.2.2 — 2026-10-06
 
 ### Fixed

@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.3.0 — 2026-10-06
+
+### Added
+- **Batch online videos.** *Online Video URL* mode now takes several links (one per line). They are
+  analysed one after another; a failed link is reported without stopping the rest. Results show a
+  summary table, per-video explanation/chapters/transcript tabs, and a single download of all
+  explanations (.md). One link behaves exactly as before. The sidebar Time Range applies to every video.
+
+### Fixed
+- **YouTube captions-first was silently broken** with `youtube-transcript-api` 1.x (it removed
+  `list_transcripts`), so every YouTube video fell back to slow Whisper. The app now supports both
+  API versions. In testing, a 3-link batch dropped from 391 s to 228 s and transcripts were more complete.
+- With no language chosen, captions now prefer English instead of whichever track YouTube lists first
+  (dubbed videos could return Arabic).
+- The caption language now maps to the right AI output language via its language code (it was always
+  falling back to English).
+
 ## v1.2.4 — 2026-10-06
 
 ### Fixed

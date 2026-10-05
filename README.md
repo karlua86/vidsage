@@ -6,8 +6,9 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ---
 
-## 🆕 What's new in v1.1 / v1.2
+## 🆕 What's new in v1.1 – v1.3
 
+- **📚 Batch online videos (v1.3)** — in *Online Video URL* mode, paste several links (one per line) and VidSage analyses them one after another. A broken link doesn't stop the rest; you get a summary table and a one-click download of all explanations.
 - **✂️ Time Range** — analyse only part of a long video (Start/End in the sidebar). Timestamps stay on the original timeline.
 - **🧠 Smarter frame de-duplication** — different slides on a white background are no longer mistaken for duplicates.
 - **💸 DeepSeek Flash engine (v1.2)** — a much cheaper alternative to Claude/OpenAI that also reads video frames.
@@ -48,6 +49,7 @@ Full details in [CHANGELOG.md](CHANGELOG.md).
 - Plain Text (`.txt`)
 
 ### ✂️ Control & Automation
+- **Batch online videos** — paste many YouTube/Vimeo/TikTok… links at once
 - **Time Range** — analyse only a chosen window of the video
 - **YouTube captions first** — skips Whisper when captions exist
 - **Claude Code integration** — `watch.py` command-line tool and skill

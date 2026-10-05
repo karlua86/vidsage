@@ -4391,7 +4391,8 @@ def process_one_video(video_file, video_name: str, status_container,
             source = "auto-generated" if prefetched_transcript.get("is_generated") else "manual"
             # Auto-resolve output language from YouTube transcript language
             if output_language == "Auto (match video)":
-                _yt_mapped = WHISPER_LANG_TO_OUTPUT.get(lang, "English")
+                _yt_code = (prefetched_transcript.get("language_code") or "").split("-")[0].lower()
+                _yt_mapped = WHISPER_LANG_TO_OUTPUT.get(_yt_code or lang, "English")
                 output_language = _yt_mapped
                 st.session_state["output_language"] = _yt_mapped
                 st.session_state["last_detected_output_language"] = _yt_mapped
@@ -4703,17 +4704,22 @@ def fetch_youtube_transcript(url: str, lang_code: str | None = None) -> dict | N
 
         # lang_code already resolved by the caller from WHISPER_LANGUAGES
 
-        transcript_list = YouTubeTranscriptApi.list_transcripts(vid_id)
+        # youtube-transcript-api 0.x had list_transcripts(); 1.x moved it to an instance .list()
+        if hasattr(YouTubeTranscriptApi, "list_transcripts"):
+            transcript_list = YouTubeTranscriptApi.list_transcripts(vid_id)
+        else:
+            transcript_list = YouTubeTranscriptApi().list(vid_id)
 
-        # Build ordered list of candidates to try
+        # Build ordered list of candidates to try.  With no language chosen, prefer English
+        # rather than whichever track YouTube lists first (dubbed videos list many languages).
         candidates = []
-        if lang_code:
+        for _want in ([lang_code] if lang_code else ["en"]):
             try:
-                candidates.append(transcript_list.find_manually_created_transcript([lang_code]))
+                candidates.append(transcript_list.find_manually_created_transcript([_want]))
             except Exception:
                 pass
             try:
-                candidates.append(transcript_list.find_generated_transcript([lang_code]))
+                candidates.append(transcript_list.find_generated_transcript([_want]))
             except Exception:
                 pass
         # Fallback: grab whatever is available
@@ -4726,6 +4732,8 @@ def fetch_youtube_transcript(url: str, lang_code: str | None = None) -> dict | N
 
         transcript = candidates[0]
         entries    = transcript.fetch()
+        if hasattr(entries, "to_raw_data"):      # 1.x returns snippet objects, 0.x plain dicts
+            entries = entries.to_raw_data()
 
         if not entries:
             return None
@@ -4776,6 +4784,7 @@ def fetch_youtube_transcript(url: str, lang_code: str | None = None) -> dict | N
             "srt_content":      srt_content,
             "segments":         segments,
             "language":         transcript.language,
+            "language_code":    getattr(transcript, "language_code", ""),
             "is_generated":     transcript.is_generated,
         }
 
@@ -5408,6 +5417,82 @@ if _mode_key == "Batch (Multiple Videos)" and uploaded_files and active_key:
                     st.text_area("Transcript", r["full_transcript"], height=300,
                                  key=f"batch_ts_{r['video_name']}")
 
+def parse_video_urls(text: str) -> tuple:
+    """Split pasted text (one link per line; commas/spaces also work) into (urls, ignored).
+    Duplicates are dropped, order is kept, and only http(s) links are accepted."""
+    urls, ignored, seen = [], [], set()
+    for token in re.split(r"[\s,;]+", text or ""):
+        token = token.strip()
+        if not token:
+            continue
+        if not re.match(r"https?://", token, re.I):
+            ignored.append(token)
+        elif token not in seen:
+            seen.add(token)
+            urls.append(token)
+    return urls, ignored
+
+
+def _analyse_online_url(yt_url: str, yt_status) -> tuple:
+    """Captions (YouTube) → download → full analysis for ONE online video.
+    Returns (result, video_name, platform_name).  Used by both single and batch URL modes."""
+    with tempfile.TemporaryDirectory() as yt_tmpdir:
+        _plat = detect_platform(yt_url)
+
+        # ── Step 1: try YouTube captions (YouTube only) ───
+        yt_transcript = None
+        if is_youtube_url(yt_url):
+            yt_status.write("📝 Checking for YouTube captions…")
+            yt_transcript = fetch_youtube_transcript(yt_url, whisper_lang_code)
+            if yt_transcript:
+                lang   = yt_transcript.get("language", "unknown")
+                source = ("auto-generated"
+                          if yt_transcript.get("is_generated")
+                          else "manual")
+                yt_status.write(
+                    f"   → ✅ Found **{lang}** captions ({source}) — "
+                    f"Whisper will be skipped"
+                )
+            else:
+                yt_status.write("   → No captions found — Whisper will transcribe")
+        else:
+            yt_status.write(
+                f"📝 **{_plat}** — captions not available via API; "
+                f"Whisper will transcribe the audio"
+            )
+
+        # ── Step 2: download video (needed for frames) ────
+        yt_status.write(f"⬇️ Downloading from **{_plat}**…")
+        video_path, video_title, platform_name = download_online_video(yt_url, yt_tmpdir)
+        file_size = os.path.getsize(video_path) / 1_048_576
+        yt_status.write(
+            f"   → **{video_title}** ({file_size:.1f} MB) from {platform_name} ✅"
+        )
+
+        with open(video_path, "rb") as f:
+            video_bytes = f.read()
+
+        video_name = f"{video_title}.mp4"
+
+        # ── Step 3: analyse (Whisper skipped if transcript found) ──
+        result = process_one_video(
+            video_bytes, video_name, yt_status,
+            frame_mode, max_frames,
+            frame_interval if frame_mode in ("📅 Fixed Interval", "🔍 Dense + Dedup") else 45,
+            scene_threshold if frame_mode in ("🧠 Smart Scene Detection", "🔍 Dense + Dedup") else 0.4,
+            min_words_seg,
+            whisper_model, whisper_lang_code, whisper_initial_prompt,
+            whisper_language_display, do_cleanup,
+            ai_engine, claude_key, gemini_key,
+            auto_save, save_folder,
+            prefetched_transcript=yt_transcript,
+            output_language=output_language,
+            slide_images=st.session_state.get("slide_images"),
+            openai_key=openai_key,
+        )
+        return result, video_name, platform_name
+
+
 # ── YOUTUBE MODE ──────────────────────────────────────────────────────────────
 if _mode_key == "Online Video URL":
     if not active_key:
@@ -5417,97 +5502,112 @@ if _mode_key == "Online Video URL":
             "Paste a link from **YouTube, Vimeo, Dailymotion, Facebook, Instagram, "
             "Twitter / X, TikTok, Twitch, Bilibili, Rumble, TED** or any other "
             "[yt-dlp supported platform](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md). "
+            "Paste one link or several (one per line) for a batch. "
             "The video is downloaded locally — only frames & transcript are sent to the AI."
         )
 
-        yt_url = st.text_input(
-            "Video URL",
-            placeholder="https://www.youtube.com/watch?v=...  or  https://vimeo.com/...  or  https://www.dailymotion.com/video/...",
+        yt_urls_text = st.text_area(
+            "Video URL(s) — one link per line",
+            height=120,
+            placeholder=("https://www.youtube.com/watch?v=...\n"
+                         "https://vimeo.com/...\n"
+                         "https://www.dailymotion.com/video/...   (add as many as you like)"),
+            help="Paste one link for a single video, or several links (one per line) to analyse them as a batch.",
         )
+        _urls, _ignored = parse_video_urls(yt_urls_text)
+        if _ignored:
+            st.warning("Ignored (not a http/https link): " + ", ".join(f"`{x[:40]}`" for x in _ignored[:5])
+                       + (" …" if len(_ignored) > 5 else ""))
+        if _urls and (st.session_state.get("range_start_txt") or st.session_state.get("range_end_txt")):
+            st.caption("✂️ The sidebar **Time Range** applies to every video in this list.")
 
-        # Show detected platform in real-time as the user types
-        if yt_url:
-            _plat = detect_platform(yt_url)
-            st.info(f"🌐 Detected platform: **{_plat}**", icon="ℹ️")
-
-        if yt_url:
+        # ── ONE link: same behaviour as before ───────────────────────────────
+        if len(_urls) == 1:
+            yt_url = _urls[0]
+            st.info(f"🌐 Detected platform: **{detect_platform(yt_url)}**", icon="ℹ️")
             if st.button("🚀 Download & Analyse", type="primary"):
-                with tempfile.TemporaryDirectory() as yt_tmpdir:
-                    with st.status("Working…", expanded=True) as yt_status:
-                        try:
-                            _plat = detect_platform(yt_url)
-
-                            # ── Step 1: try YouTube captions (YouTube only) ───
-                            yt_transcript = None
-                            if is_youtube_url(yt_url):
-                                yt_status.write("📝 Checking for YouTube captions…")
-                                yt_transcript = fetch_youtube_transcript(
-                                    yt_url, whisper_lang_code)
-                                if yt_transcript:
-                                    lang   = yt_transcript.get("language", "unknown")
-                                    source = ("auto-generated"
-                                              if yt_transcript.get("is_generated")
-                                              else "manual")
-                                    yt_status.write(
-                                        f"   → ✅ Found **{lang}** captions ({source}) — "
-                                        f"Whisper will be skipped"
-                                    )
-                                else:
-                                    yt_status.write(
-                                        "   → No captions found — Whisper will transcribe"
-                                    )
-                            else:
-                                yt_status.write(
-                                    f"📝 **{_plat}** — captions not available via API; "
-                                    f"Whisper will transcribe the audio"
-                                )
-
-                            # ── Step 2: download video (needed for frames) ────
-                            yt_status.write(
-                                f"⬇️ Downloading from **{_plat}**…")
-                            video_path, video_title, platform_name = \
-                                download_online_video(yt_url, yt_tmpdir)
-                            file_size = os.path.getsize(video_path) / 1_048_576
-                            yt_status.write(
-                                f"   → **{video_title}** ({file_size:.1f} MB) "
-                                f"from {platform_name} ✅"
-                            )
-
-                            with open(video_path, "rb") as f:
-                                video_bytes = f.read()
-
-                            video_name = f"{video_title}.mp4"
-
-                            # ── Step 3: analyse (Whisper skipped if transcript found) ──
-                            result = process_one_video(
-                                video_bytes, video_name, yt_status,
-                                frame_mode, max_frames,
-                                frame_interval if frame_mode in ("📅 Fixed Interval", "🔍 Dense + Dedup") else 45,
-                                scene_threshold if frame_mode in ("🧠 Smart Scene Detection", "🔍 Dense + Dedup") else 0.4,
-                                min_words_seg,
-                                whisper_model, whisper_lang_code, whisper_initial_prompt,
-                                whisper_language_display, do_cleanup,
-                                ai_engine, claude_key, gemini_key,
-                                auto_save, save_folder,
-                                prefetched_transcript=yt_transcript,
-                                output_language=output_language,
-                                slide_images=st.session_state.get("slide_images"),
-                                openai_key=openai_key,
-                            )
-                            yt_status.update(label="✅ Analysis complete!", state="complete")
-
-                        except Exception as e:
-                            yt_status.update(label=f"❌ Failed: {e}", state="error")
-                            st.error(f"Error: {e}")
-                            st.stop()
+                with st.status("Working…", expanded=True) as yt_status:
+                    try:
+                        result, video_name, platform_name = _analyse_online_url(yt_url, yt_status)
+                        yt_status.update(label="✅ Analysis complete!", state="complete")
+                    except Exception as e:
+                        yt_status.update(label=f"❌ Failed: {e}", state="error")
+                        st.error(f"Error: {e}")
+                        st.stop()
 
                 if auto_save:
                     st.success(f"💾 Auto-saved to `{save_folder}`")
 
                 # Store results + metadata
+                st.session_state.pop("yt_batch", None)
                 st.session_state["yt_result"]   = result
                 st.session_state["yt_name"]     = video_name
                 st.session_state["yt_platform"] = platform_name
+
+        # ── SEVERAL links: batch ─────────────────────────────────────────────
+        elif len(_urls) > 1:
+            st.markdown(f"**{len(_urls)} videos queued**")
+            st.dataframe(pd.DataFrame({"#": range(1, len(_urls) + 1),
+                                       "Platform": [detect_platform(u) for u in _urls],
+                                       "Link": _urls}), hide_index=True)
+            if st.button(f"🚀 Download & Analyse All ({len(_urls)} videos)", type="primary"):
+                st.session_state.pop("yt_result", None)
+                _batch = []
+                _overall = st.progress(0, text="Starting batch…")
+                for _i, _u in enumerate(_urls):
+                    st.markdown(f"---\n#### [{_i + 1}/{len(_urls)}] {_u}")
+                    with st.status(f"Processing {_u}…", expanded=True) as _vstatus:
+                        try:
+                            _res, _vname, _plat_name = _analyse_online_url(_u, _vstatus)
+                            _batch.append({**_res, "video_name": _vname, "url": _u,
+                                           "platform": _plat_name, "status": "✅ Done"})
+                            _vstatus.update(label=f"✅ {_vname} complete", state="complete")
+                        except Exception as e:      # one bad link must not stop the batch
+                            _batch.append({"video_name": _u, "url": _u, "platform": detect_platform(_u),
+                                           "status": f"❌ Error: {e}"})
+                            _vstatus.update(label=f"❌ Failed: {_u}", state="error")
+                    _overall.progress((_i + 1) / len(_urls),
+                                      text=f"Completed {_i + 1} of {len(_urls)}")
+                st.session_state["yt_batch"] = _batch
+                if auto_save:
+                    st.success(f"💾 Results saved to `{save_folder}` — open the History tab for the full view and exports.")
+
+        # Show batch results if available
+        if st.session_state.get("yt_batch"):
+            _b = st.session_state["yt_batch"]
+            st.markdown("---")
+            st.subheader("📊 Batch Summary")
+            st.dataframe(pd.DataFrame([{
+                "Video":    r["video_name"],
+                "Platform": r.get("platform", ""),
+                "Duration": fmt_time(r.get("duration", 0)) if "duration" in r else "—",
+                "Words":    f"{len(r.get('full_transcript', '').split()):,}" if "full_transcript" in r else "—",
+                "Chapters": str(len(r.get("chapters", []))) if "chapters" in r else "—",
+                "Status":   r["status"],
+            } for r in _b]), hide_index=True)
+            _failed = [r for r in _b if "explanation" not in r]
+            if _failed:
+                st.error(f"{len(_failed)} video(s) failed — copy their links back into the box and re-run:\n\n"
+                         + "\n".join(f"- {r['url']}" for r in _failed))
+            _done = [r for r in _b if "explanation" in r]
+            if _done:
+                _all_md = "\n\n---\n\n".join(
+                    f"# {r['video_name']}\nSource: {r['url']}\n\n{r['explanation']}" for r in _done)
+                st.download_button("⬇️ Download all explanations (.md)", _all_md,
+                                   file_name="vidsage_batch_explanations.md", mime="text/markdown")
+            st.subheader("📄 Individual Results")
+            for _n, r in enumerate(_done):
+                with st.expander(f"📹 {r['video_name']}"):
+                    st.caption(f"🌐 {r.get('platform', '')} · {r['url']}")
+                    t1, t2, t3 = st.tabs(["Explanation", "Chapters", "Transcript"])
+                    with t1:
+                        st.markdown(r["explanation"])
+                    with t2:
+                        for c in r.get("chapters", []):
+                            st.markdown(f"**`{c['time']}`** — {c['title']}")
+                    with t3:
+                        st.text_area("Transcript", r["full_transcript"], height=300,
+                                     key=f"ytbatch_ts_{_n}")
 
         # Show results if available
         if "yt_result" in st.session_state and st.session_state.get("yt_name"):

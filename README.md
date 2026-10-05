@@ -203,3 +203,23 @@ Free for personal and open-source use. Commercial use requires written permissio
 - [OpenCV](https://opencv.org) — video frame extraction
 - [PyMuPDF](https://pymupdf.readthedocs.io) — PDF processing
 - [python-docx](https://python-docx.readthedocs.io) — Word export
+
+## Use VidSage from Claude Code (`watch.py`)
+
+`watch.py` is a command-line version of the pipeline so Claude Code can "watch" a video:
+
+```bash
+python watch.py "https://youtu.be/XXXXXXXXXXX" --transcript-only       # captions first, no download
+python watch.py lecture.mp4 --start 12:30 --end 18:00 --max-frames 12  # only a window
+python watch.py lecture.mp4 --at 14:05,14:40                           # exact "look here" frames
+```
+
+It prints a Markdown report (timestamped transcript + saved frame paths) for Claude to read.
+Install the ready-made skill by copying `claude-skill/vidsage-watch/` into `~/.claude/skills/`.
+
+### Time range & smarter de-duplication
+- The sidebar has an optional **Time Range** (Start/End) so only part of a long video is analysed.
+  Timestamps in the transcript, SRT and frames still match the original video.
+- Near-duplicate frames are detected from a 64×36 pixel-change signature instead of an 8×8 mean-hash
+  (which treated different white slides as identical). The *Dedup aggressiveness* labels now match
+  their behaviour (lower value = more frames removed).

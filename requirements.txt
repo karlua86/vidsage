@@ -9,3 +9,5 @@ google-genai
 openai
 python-docx
 PyMuPDF
+yt-dlp
+youtube-transcript-api

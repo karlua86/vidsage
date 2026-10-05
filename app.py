@@ -15,6 +15,12 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from frames_core import (
+    frame_signature as _frame_signature,
+    frame_is_duplicate as _frame_is_duplicate,
+    is_duplicate as _is_duplicate,
+    parse_timecode, trim_clip,
+)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -746,18 +752,6 @@ def extract_scene_frames(video_path: str, max_frames: int = 15,
     return frames_b64, timestamps, duration
 
 
-def _perceptual_hash(frame) -> np.ndarray:
-    """8×8 mean-hash of a BGR frame — returns a 64-element boolean array."""
-    small = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (8, 8))
-    flat  = small.flatten().astype(float)
-    return flat > flat.mean()
-
-
-def _is_duplicate(phash: np.ndarray, accepted: list, threshold: float = 0.92) -> bool:
-    """True if phash is ≥ threshold similar to any already-accepted hash."""
-    return any(np.mean(phash == h) >= threshold for h in accepted)
-
-
 def extract_speech_aligned_frames(video_path: str, segments: list,
                                    min_words: int = 8, max_frames: int = 15) -> tuple:
     """
@@ -769,8 +763,8 @@ def extract_speech_aligned_frames(video_path: str, segments: list,
          gap > 1.5 s — these are natural topic / slide boundaries.
       3. Select the top-scoring candidates, seek to 0.5 s into each segment
          (avoiding transition flashes at t=0), and capture.
-      4. Skip near-duplicate frames using a perceptual hash (8×8 mean-hash,
-         Hamming similarity ≥ 92 % → discard).
+      4. Skip near-duplicate frames using a pixel-change signature (64×36 grayscale,
+         similarity ≥ 92 % → discard).
 
     Returns (frames_b64, timestamps, duration).
     """
@@ -823,8 +817,8 @@ def extract_speech_aligned_frames(video_path: str, segments: list,
         ret, frame = cap.read()
         if not ret:
             continue
-        phash = _perceptual_hash(frame)
-        if _is_duplicate(phash, accepted_hashes):
+        phash = _frame_signature(frame)
+        if _frame_is_duplicate(phash, accepted_hashes):
             continue
         raw_candidates.append((frame_to_b64(frame), ts, frame))
         accepted_hashes.append(phash)
@@ -847,7 +841,7 @@ def extract_dense_dedup_frames(video_path: str,
 
     Strategy:
       1. Extract one frame every `interval_sec` seconds (typically 2–3 s).
-      2. Discard near-duplicates using an 8×8 mean-hash;
+      2. Discard near-duplicates using a 64×36 pixel-change signature;
          frames with similarity ≥ phash_threshold are skipped.
       3. From the surviving unique frames, keep the `max_frames`
          most text-dense ones (edge density + Laplacian variance).
@@ -870,8 +864,8 @@ def extract_dense_dedup_frames(video_path: str,
         ret, frame = cap.read()
         if not ret:
             continue
-        phash = _perceptual_hash(frame)
-        if _is_duplicate(phash, accepted_hashes, threshold=phash_threshold):
+        phash = _frame_signature(frame)
+        if _frame_is_duplicate(phash, accepted_hashes, threshold=phash_threshold):
             continue
         ts = frame_idx / fps
         unique_candidates.append((frame_to_b64(frame), ts, frame))
@@ -3101,14 +3095,14 @@ with st.sidebar:
             options=[0.80, 0.85, 0.88, 0.90, 0.92],
             value=0.88,
             format_func=lambda x: {
-                0.80: "Light — keep more frames",
-                0.85: "Moderate",
+                0.80: "Very aggressive — minimal frames",
+                0.85: "Aggressive",
                 0.88: "Balanced ✓",
-                0.90: "Aggressive",
-                0.92: "Very aggressive — minimal frames",
+                0.90: "Moderate",
+                0.92: "Light — keep more frames",
             }[x],
             help=(
-                "Higher = frames need to be more different to both be kept. "
+                "Lower = more frames are treated as duplicates and dropped. "
                 "0.88 works well for most Zoom, lecture, and screen recordings."
             ),
         )
@@ -3132,6 +3126,15 @@ with st.sidebar:
             "scored by words-per-second, and deduplicated automatically. "
             "Extra frames are added at silence gaps (topic/slide shifts)."
         )
+
+    _sidebar_section("✂️ Time Range (Optional)")
+    st.caption("Analyse only part of a long video. Leave blank for the whole video. "
+               "Accepts SS, MM:SS or HH:MM:SS.")
+    _rc1, _rc2 = st.columns(2)
+    with _rc1:
+        st.text_input("Start", key="range_start_txt", placeholder="e.g. 12:30")
+    with _rc2:
+        st.text_input("End", key="range_end_txt", placeholder="e.g. 18:00")
 
     _sidebar_section("📎 Upload Slides (Optional)")
     st.caption(
@@ -4209,6 +4212,28 @@ def process_one_video(video_file, video_name: str, status_container,
             else:
                 f.write(video_file)
 
+        # Optional time range: cut the clip so every later step (audio, frames,
+        # Whisper) only sees that window; timestamps are shifted back afterwards.
+        _rng_start = parse_timecode(st.session_state.get("range_start_txt"))
+        _rng_end   = parse_timecode(st.session_state.get("range_end_txt"))
+        range_offset = 0.0
+        _rng_window = None
+        if _rng_start is not None or _rng_end is not None:
+            _full_dur = get_video_duration(video_path)
+            _rng_start = max(_rng_start or 0.0, 0.0)
+            _rng_end = min(_rng_end, _full_dur) if _rng_end is not None else _full_dur
+            if _rng_end - _rng_start < 1:
+                raise ValueError(
+                    f"Invalid time range: start {fmt_time(_rng_start)} / end "
+                    f"{fmt_time(_rng_end)} (video is {fmt_time(_full_dur)} long).")
+            status_container.write(
+                f"✂️ Analysing only {fmt_time(_rng_start)} → {fmt_time(_rng_end)}…")
+            _clip_path = os.path.join(tmpdir, "clip.mp4")
+            trim_clip(video_path, _clip_path, _rng_start, _rng_end)
+            video_path = _clip_path
+            range_offset = _rng_start
+            _rng_window = (_rng_start, _rng_end)
+
         model_times = {"base": "5–10 min", "small": "10–20 min",
                        "medium": "30–60 min", "large": "60–120 min"}
         est = model_times.get(whisper_model, "a few minutes")
@@ -4369,6 +4394,23 @@ def process_one_video(video_file, video_name: str, status_container,
                     f"\u2192 AI output: **{output_language}**"
                 )
                 status_container.write(f"   → {len(full_transcript.split()):,} words transcribed")
+
+        # Put timestamps back on the ORIGINAL video's timeline when a range was used
+        if _rng_window:
+            if range_offset:
+                frame_ts = [t + range_offset for t in frame_ts]
+            if prefetched_transcript:
+                # Captions cover the whole video → keep only the requested window
+                _lo, _hi = _rng_window
+                segments = [sg for sg in segments if _lo <= sg["start"] < _hi]
+            else:
+                segments = [{**sg, "start": sg["start"] + range_offset,
+                             "end": sg["end"] + range_offset} for sg in segments]
+            full_transcript = " ".join(sg["text"].strip() for sg in segments).strip()
+            timestamped_transcript = "\n".join(
+                f"[{fmt_time(sg['start'])}] {sg['text'].strip()}"
+                for sg in segments if sg["text"].strip()) or full_transcript
+            srt_content = generate_srt(segments)
 
         # 3b. Cleanup
         if do_cleanup:

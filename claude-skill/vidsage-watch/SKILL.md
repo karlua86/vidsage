@@ -25,6 +25,7 @@ Set `VIDSAGE_DIR` to your VidSage folder (the one containing `watch.py`), e.g.
 - `--start MM:SS --end MM:SS` — only analyse a window (long videos). Timestamps stay on the original timeline.
 - `--mode dense|scene|interval` — dense (default) = sample + drop near-duplicates, best for slides/lectures.
 - `--dedup 0.80–0.92` — lower drops more near-identical frames.
+- Captions default to English; the report lists other available languages — pass `--lang CODE` (e.g. `ms`, `zh`, `ar`) for those.
 - `--max-frames N`, `--interval SECONDS`, `--lang xx`, `--whisper-model base|small|medium|large`.
 
 Videos over ~10 min: use the transcript first, then pick `--start/--end` windows for frames.

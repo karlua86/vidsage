@@ -6,6 +6,17 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ---
 
+## 🆕 What's new in v1.1
+
+- **✂️ Time Range** — analyse only part of a long video (Start/End in the sidebar). Timestamps stay on the original timeline.
+- **🧠 Smarter frame de-duplication** — different slides on a white background are no longer mistaken for duplicates.
+- **🤖 Use VidSage from Claude Code** — new `watch.py` command-line tool + ready-made skill, so Claude can "watch" a video (YouTube captions first, Whisper fallback). See [below](#use-vidsage-from-claude-code-watchpy).
+- **🐛 Fixes** — *Dedup aggressiveness* labels were backwards; `yt-dlp` and `youtube-transcript-api` were missing from `requirements.txt`.
+
+Full details in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## ✨ Features
 
 ### 🎙️ Transcription
@@ -32,6 +43,11 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 - PDF (`.pdf`)
 - SRT Subtitles (`.srt`)
 - Plain Text (`.txt`)
+
+### ✂️ Control & Automation
+- **Time Range** — analyse only a chosen window of the video
+- **YouTube captions first** — skips Whisper when captions exist
+- **Claude Code integration** — `watch.py` command-line tool and skill
 
 ### 🔒 Privacy First
 - Everything runs **on your computer**

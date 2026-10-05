@@ -30,6 +30,7 @@ from frames_core import (
     score_text_density, trim_clip,
 )
 
+CAPTION_LANGS: list = []   # other caption languages available (filled by fetch_captions)
 YOUTUBE_ID = re.compile(r"(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})")
 
 
@@ -72,17 +73,21 @@ def fetch_captions(url: str, lang: str | None):
         else:                                                      # 1.x API
             tlist = YouTubeTranscriptApi().list(vid)
         cands = []
-        if lang:
+        # No --lang given: prefer English rather than whichever track YouTube lists first
+        # (that once returned Arabic for an English video).  Use --lang for other languages.
+        for want in ([lang] if lang else ["en"]):
             for finder in (tlist.find_manually_created_transcript,
                            tlist.find_generated_transcript):
                 try:
-                    cands.append(finder([lang]))
+                    cands.append(finder([want]))
                 except Exception:
                     pass
         cands += [t for t in tlist if t not in cands]
         if not cands:
             return None
         tr = cands[0]
+        CAPTION_LANGS[:] = sorted({t.language_code for t in tlist
+                                   if t.language_code != tr.language_code})
         raw = tr.fetch()
         segs = []
         for e in raw:
@@ -288,6 +293,9 @@ def main() -> int:
         print(n)
     if segments is not None:
         print(f"\n## Transcript — {tx_label}\n")
+        if CAPTION_LANGS:
+            print(f"(other caption languages available — use --lang CODE: "
+                  f"{', '.join(CAPTION_LANGS[:15])}{'…' if len(CAPTION_LANGS) > 15 else ''})\n")
         lines = [f"[{fmt_time(s['start'])}] {s['text']}" for s in segments if s["text"]]
         print("\n".join(lines) if lines else "(no speech detected in this window)")
     elif not a.no_transcript:

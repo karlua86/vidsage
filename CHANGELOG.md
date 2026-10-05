@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.2.1 — 2026-10-06
+
+### Changed
+- **Cost estimates in the sidebar corrected** against current provider prices (Claude Sonnet 4.6
+  + Haiku 4.5, GPT-4o + 4o-mini, DeepSeek Flash) and VidSage's real behaviour (frame count,
+  transcript size, helper calls for chapters/title/tags/notes), no slides, cleanup off:
+  Claude ~$0.10–0.30, GPT-4o ~$0.07–0.20, DeepSeek Flash ~$0.01–0.04 per video (10–60 min).
+  Uploading slides or turning on transcript cleanup raises these. They are estimates, not quotes.
+- DeepSeek Flash calls now disable its default "thinking" mode, which is slower and bills extra
+  output tokens; VidSage's summarising tasks don't need it.
+- `start_vidsage.bat` now prefers a Python that already has streamlit (venv, then .venv, then
+  system Python) instead of trying to install into an empty venv.
+
 ## v1.2.0 — 2026-10-06
 
 ### Added

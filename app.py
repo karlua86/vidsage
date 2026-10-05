@@ -42,6 +42,14 @@ def _oai_client(ai_engine: str, api_key: str):
     return OpenAI(api_key=api_key)
 
 
+def _oai_extra(ai_engine: str) -> dict:
+    """Extra request fields. DeepSeek Flash 'thinks' by default (slower, extra billed output
+    tokens); VidSage's summarising tasks don't need it."""
+    if ai_engine == DEEPSEEK_ENGINE:
+        return {"extra_body": {"thinking": {"type": "disabled"}}}
+    return {}
+
+
 def _oai_model(ai_engine: str, size: str = "main") -> str:
     """size: 'main' = full analysis, 'small' = cheap helper calls (cleanup, chapters, tags)."""
     if ai_engine == DEEPSEEK_ENGINE:
@@ -947,7 +955,7 @@ TRANSCRIPT TO CORRECT:
         from openai import OpenAI as _OAI
         _oc = _oai_client(ai_engine, openai_key)
         _or = _oc.chat.completions.create(
-            model=_oai_model(ai_engine, "small"),
+            model=_oai_model(ai_engine, "small"), **_oai_extra(ai_engine),
             max_tokens=8192,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1032,7 +1040,7 @@ TRANSCRIPT:{_sample_note}
         from openai import OpenAI as _OAI
         _oc = _oai_client(ai_engine, openai_key)
         _or = _oc.chat.completions.create(
-            model=_oai_model(ai_engine, "small"),
+            model=_oai_model(ai_engine, "small"), **_oai_extra(ai_engine),
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1120,7 +1128,7 @@ If something is not covered in the video, say so clearly."""
                          if not chat_history else question})
 
         _or = _oc.chat.completions.create(
-            model=_oai_model(ai_engine, "small"),
+            model=_oai_model(ai_engine, "small"), **_oai_extra(ai_engine),
             max_tokens=1024,
             messages=messages,
         )
@@ -2241,7 +2249,7 @@ def generate_pkm_note(video_name: str, video_type: str, duration: float,
         from openai import OpenAI as _OAI
         _oc = _oai_client(ai_engine, openai_key)
         _or = _oc.chat.completions.create(
-            model=_oai_model(ai_engine, "small"),
+            model=_oai_model(ai_engine, "small"), **_oai_extra(ai_engine),
             max_tokens=4096,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -2715,6 +2723,7 @@ def analyze_with_openai(timestamped_transcript, frames, timestamps, duration, ap
 
     response = client.chat.completions.create(
         model=_oai_model(ai_engine, "main"),
+        **_oai_extra(ai_engine),
         max_tokens=16384,   # GPT-4o supports up to 16 384 output tokens
         messages=[{"role": "user", "content": content}],
     )
@@ -2915,9 +2924,9 @@ with st.sidebar:
         index=1,
         captions=[
             "Google Gemini — free tier, 1,500 req/day",
-            "Anthropic Claude — ~$0.08/video",
-            "OpenAI GPT-4o — ~$0.10/video",
-            "DeepSeek V4.1 Flash — ~$0.01–0.02/video, reads images",
+            "Anthropic Claude — ~$0.10–0.30/video",
+            "OpenAI GPT-4o — ~$0.07–0.20/video",
+            "DeepSeek V4.1 Flash — ~$0.01–0.04/video, reads images",
         ],
     )
 
@@ -3946,7 +3955,7 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                                 from openai import OpenAI as _OAI
                                 _oc = _oai_client(ai_engine, openai_key)
                                 _or = _oc.chat.completions.create(
-                                    model=_oai_model(ai_engine, "small"), max_tokens=4096,
+                                    model=_oai_model(ai_engine, "small"), **_oai_extra(ai_engine), max_tokens=4096,
                                     messages=[{"role": "user", "content": pkm_prompt}])
                                 new_pkm = _or.choices[0].message.content.strip()
                             else:

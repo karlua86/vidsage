@@ -2151,7 +2151,8 @@ For EACH concept in the table above, write a subsection:
 ### [[Concept Name]]
 **What it is:** ...
 **How it works:** ...
-**Example from the video:** > "exact quote or paraphrase from transcript" — [MM:SS]
+**Example from the video:**
+> "exact quote or paraphrase from transcript" — [MM:SS]
 **Common mistake / misconception:** ...
 
 (repeat for every concept)
@@ -3254,12 +3255,35 @@ with st.sidebar:
 
     st.info("**First run?** Whisper will auto-download the model (~1–3 GB). This happens once only.", icon="ℹ️")
 
+def _tidy_md_for_display(text: str) -> str:
+    """Make Obsidian-flavoured markdown (PKM notes) render cleanly inside Streamlit.
+    Display only — the raw note and exports keep their [[wikilinks]]."""
+    # [[Topic]] / [[Topic|alias]] → bold text (Streamlit has no wikilink support)
+    text = re.sub(r'\[\[([^\]|\n]+)\|([^\]\n]+)\]\]', r'**\2**', text)
+    text = re.sub(r'\[\[([^\]\n]+)\]\]', r'**\1**', text)
+    # "**Label:** > quote" → quote on its own line so the blockquote actually renders
+    text = re.sub(r'(\*\*[^\n*]+:\*\*)[ \t]*>[ \t]*', r'\1\n\n> ', text)
+    # A line right after a "> quote" would be absorbed into the quote (markdown lazy
+    # continuation) — end the quote block with a blank line.
+    text = re.sub(r'(?m)^(>[^\n]*)\n(?!>|\n|$)', r'\1\n\n', text)
+    # Headings that became only-bold from the step above look doubled: "### **X**" → "### X"
+    text = re.sub(r'(?m)^(#{1,6})\s+\*\*(.+?)\*\*\s*$', r'\1 \2', text)
+    return text
+
+
+def _section_label(heading: str) -> str:
+    """'## 📖 Concept Deep-Dives' → '📖 Concept Deep-Dives'; '## 1. Overview' → 'Overview'."""
+    label = re.sub(r'^#{2}\s*', '', heading).strip()
+    return re.sub(r'^\d+\.\s*', '', label).strip()
+
+
 def _render_sectioned_markdown(text: str, first_expanded: bool = True) -> None:
     """
     Split a markdown string on ## headings and render each section
     inside its own st.expander.  The first section is expanded by default;
     all others start collapsed.
     """
+    text = _tidy_md_for_display(text)
     # Split on lines that start with exactly "## " (level-2 heading)
     parts = re.split(r'(?m)^(## .+)$', text.strip())
     # parts[0] is anything before the first ## heading (often empty or a title)
@@ -3272,9 +3296,7 @@ def _render_sectioned_markdown(text: str, first_expanded: bool = True) -> None:
     while i < len(parts) - 1:
         heading = parts[i]          # e.g. "## 1. Overview"
         body    = parts[i + 1]      # content until the next heading
-        # Strip the leading "## " and any numbering like "1. " for a clean label
-        label = re.sub(r'^##\s+\d+\.\s*', '', heading).strip()
-        sections.append((label, body.strip()))
+        sections.append((_section_label(heading), body.strip()))
         i += 2
 
     for idx, (label, body) in enumerate(sections):

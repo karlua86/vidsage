@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.2 — 2026-10-06
+
+### Fixed
+- Notes/explanation preview formatting: section headers without a number no longer show a stray
+  `##`; Obsidian `[[wiki-links]]` display as plain bold text in the app (the raw note and exports
+  keep `[[links]]`); "Example from the video" quotes render as real blockquotes instead of a
+  literal `>`, and the line after a quote is no longer swallowed into it.
+- The PKM note template now puts the example quote on its own line.
+
 ## v1.2.1 — 2026-10-06
 
 ### Changed

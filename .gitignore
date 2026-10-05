@@ -69,3 +69,12 @@ desktop.ini
 # Logs
 *.log
 logs/
+
+# Local scratch / machine-specific files
+check_font.py
+font_check_out.txt
+*_test.pdf
+test_*.pdf
+vidsage_*.docx
+graphify-out/
+run.bat

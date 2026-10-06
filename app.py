@@ -15,6 +15,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from cloud_stt import transcribe_cloud, PROVIDERS as STT_PROVIDERS
 from frames_core import (
     frame_signature as _frame_signature,
     frame_is_duplicate as _frame_is_duplicate,
@@ -554,6 +555,31 @@ def transcribe_audio(audio_path: str, model_size: str = "medium",
             lines.append(f"[{ts}] {txt}")
     timestamped_text = "\n".join(lines) if lines else full_text
 
+    return full_text, timestamped_text, segments, detected_lang
+
+
+def _stt_label(model_or_engine: str) -> str:
+    return {"groq": "Groq cloud · whisper-large-v3",
+            "openai": "OpenAI cloud · whisper-1"}.get(model_or_engine, model_or_engine)
+
+
+def transcribe_audio_any(audio_path: str, model_size: str = "medium",
+                         lang_code: str | None = None, initial_prompt: str = "",
+                         engine: str | None = None, groq_api_key: str | None = None,
+                         openai_api_key: str | None = None):
+    """Transcribe with local Whisper (default) or cloud Whisper (Groq / OpenAI).
+    Same return shape as transcribe_audio().  The engine and keys default to the sidebar choices."""
+    engine = engine if engine is not None else globals().get("stt_engine", "local")
+    if engine == "local":
+        return transcribe_audio(audio_path, model_size, lang_code, initial_prompt)
+
+    key = (groq_api_key if groq_api_key is not None else globals().get("groq_key", "")) \
+        if engine == "groq" else \
+        (openai_api_key if openai_api_key is not None else globals().get("openai_stt_key", ""))
+    segments, detected_lang = transcribe_cloud(
+        audio_path, engine, key, language=lang_code, prompt=initial_prompt)
+    full_text = " ".join(sg["text"] for sg in segments).strip()
+    timestamped_text = "\n".join(f"[{fmt_time(sg['start'])}] {sg['text']}" for sg in segments) or full_text
     return full_text, timestamped_text, segments, detected_lang
 
 
@@ -2996,13 +3022,43 @@ with st.sidebar:
         else claude_key
     )
 
-    _sidebar_section("🎙️ Whisper Model")
-    whisper_model = st.radio(
-        "Choose accuracy vs. speed:",
-        options=["base", "small", "medium", "large"],
-        index=2,
-        captions=["Fastest, less accurate", "Good balance", "Recommended ✓", "Most accurate, slow"],
+    _sidebar_section("🎙️ Transcription")
+    _stt_choice = st.radio(
+        "Transcription engine:",
+        options=["💻 Local Whisper", "⚡ Groq Cloud", "☁️ OpenAI Whisper"],
+        index=0,
+        captions=[
+            "Free & private — runs on your PC (slow without a strong GPU)",
+            "Very fast, ~$0.11 per hour of audio, large-v3 model",
+            "Fast, ~$0.36 per hour of audio",
+        ],
+        help="Only used when the video has no YouTube captions. Cloud options upload the "
+             "AUDIO track (never the video) to the provider.",
     )
+    stt_engine = {"💻 Local Whisper": "local", "⚡ Groq Cloud": "groq",
+                  "☁️ OpenAI Whisper": "openai"}[_stt_choice]
+    groq_key = ""
+    openai_stt_key = ""
+    if stt_engine == "groq":
+        groq_key = st.text_input("Groq API Key", value=_secret("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", ""),
+                                 type="password", help="Free key at console.groq.com")
+        st.caption("☁️ Audio (not video) is sent to Groq for transcription.")
+    elif stt_engine == "openai":
+        openai_stt_key = st.text_input(
+            "OpenAI API Key (for transcription)",
+            value=_secret("OPENAI_API_KEY") or (openai_key if ai_engine == "OpenAI (Paid)" else ""),
+            type="password", help="platform.openai.com")
+        st.caption("☁️ Audio (not video) is sent to OpenAI for transcription.")
+
+    if stt_engine == "local":
+        whisper_model = st.radio(
+            "Choose accuracy vs. speed:",
+            options=["base", "small", "medium", "large"],
+            index=2,
+            captions=["Fastest, less accurate", "Good balance", "Recommended ✓", "Most accurate, slow"],
+        )
+    else:
+        whisper_model = stt_engine      # cloud: the model is fixed by the provider
     audio_lang_mode = st.radio(
         "Audio language mode",
         ["Single language", "Multilingual"],
@@ -4332,11 +4388,13 @@ def process_one_video(video_file, video_name: str, status_container,
             _rng_window = (_rng_start, _rng_end)
 
         model_times = {"base": "5–10 min", "small": "10–20 min",
-                       "medium": "30–60 min", "large": "60–120 min"}
+                       "medium": "30–60 min", "large": "60–120 min",
+                       "groq": "1–3 min", "openai": "1–5 min"}
         est = model_times.get(whisper_model, "a few minutes")
 
         # Whisper speed multipliers: how many seconds of audio processed per wall-clock second
-        _whisper_speed = {"base": 8.0, "small": 4.0, "medium": 2.0, "large": 1.0}
+        _whisper_speed = {"base": 8.0, "small": 4.0, "medium": 2.0, "large": 1.0,
+                         "groq": 60.0, "openai": 30.0}
 
         def _run_whisper_threaded(label: str):
             """Extract audio, transcribe, return (full_text, timestamped, segments, detected_lang)."""
@@ -4354,13 +4412,13 @@ def process_one_video(video_file, video_name: str, status_container,
             speed      = _whisper_speed.get(whisper_model, 2.0)
             est_sec    = max(audio_dur / speed, 5)
 
-            status_container.write(f"✍️ Transcribing (`{whisper_model}`) — est. {est}…")
+            status_container.write(f"✍️ Transcribing (`{_stt_label(whisper_model)}`) — est. {est}…")
             whisper_bar = status_container.progress(0, text=label)
             rc, ec = {}, {}
 
             def _worker():
                 try:
-                    rc["out"] = transcribe_audio(audio_path, whisper_model,
+                    rc["out"] = transcribe_audio_any(audio_path, whisper_model,
                                                     whisper_lang_code, whisper_initial_prompt)
                 except Exception as e:
                     ec["err"] = e

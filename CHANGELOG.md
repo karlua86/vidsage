@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.0 — 2026-10-06
+
+### Added
+- **Cloud transcription (optional).** New *Transcription engine* choice in the sidebar: Local Whisper
+  (default, free, private), **Groq Cloud** (whisper-large-v3, ~$0.11 per hour of audio) or **OpenAI Whisper**
+  (whisper-1, ~$0.36 per hour). Used only when a video has no YouTube captions. Only the audio track is
+  uploaded, re-encoded to small 32 kbps MP3 chunks of 30 minutes (stays far under the 25 MB limit);
+  timestamps are stitched back onto the original timeline. A missing key gives a clear error instead of
+  silently falling back. Works with the Time Range and Batch features.
+- `watch.py --stt groq|openai` for the same option from Claude Code (key from `GROQ_API_KEY` /
+  `OPENAI_API_KEY` or `.streamlit/secrets.toml`).
+- New shared module `cloud_stt.py`. Add `GROQ_API_KEY` to `.streamlit/secrets.toml` to prefill the key.
+
 ## v1.3.1 — 2026-10-06
 
 ### Fixed

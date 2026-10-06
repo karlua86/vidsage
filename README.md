@@ -8,6 +8,7 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ## 🆕 What's new in v1.1 – v1.3
 
+- **⚡ Cloud transcription (v1.4)** — optional Groq or OpenAI Whisper for videos without captions: roughly a minute instead of an hour, about $0.11 (Groq) or $0.36 (OpenAI) per hour of audio. Only the audio is uploaded, never the video; local Whisper stays the free, private default.
 - **📚 Batch online videos (v1.3)** — in *Online Video URL* mode, paste several links (one per line) and VidSage analyses them one after another. A broken link doesn't stop the rest; you get a summary table and a one-click download of all explanations.
 - **✂️ Time Range** — analyse only part of a long video (Start/End in the sidebar). Timestamps stay on the original timeline.
 - **🧠 Smarter frame de-duplication** — different slides on a white background are no longer mistaken for duplicates.
@@ -49,6 +50,7 @@ Full details in [CHANGELOG.md](CHANGELOG.md).
 - Plain Text (`.txt`)
 
 ### ✂️ Control & Automation
+- **Cloud or local transcription** — Groq / OpenAI Whisper (fast) or local Whisper (free, private)
 - **Batch online videos** — paste many YouTube/Vimeo/TikTok… links at once
 - **Time Range** — analyse only a chosen window of the video
 - **YouTube captions first** — skips Whisper when captions exist
@@ -116,6 +118,7 @@ VidSage requires an API key for the AI analysis step. Transcription (Whisper) is
 | Claude | [console.anthropic.com](https://console.anthropic.com) | Pay per use |
 | OpenAI | [platform.openai.com](https://platform.openai.com) | Pay per use |
 | DeepSeek | [platform.deepseek.com](https://platform.deepseek.com) | Pay per use (cheapest) |
+| Groq *(optional, transcription only)* | [console.groq.com](https://console.groq.com) | ~$0.11 per hour of audio |
 
 Keys are entered in the app sidebar — never stored in code.
 
@@ -125,6 +128,7 @@ GEMINI_API_KEY = "your-key-here"
 ANTHROPIC_API_KEY = "your-key-here"
 OPENAI_API_KEY = "your-key-here"
 DEEPSEEK_API_KEY = "your-key-here"
+GROQ_API_KEY = "your-key-here"      # optional: fast cloud transcription
 ```
 
 ---

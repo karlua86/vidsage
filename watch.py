@@ -102,13 +102,30 @@ def fetch_captions(url: str, lang: str | None):
         return None
 
 
-def whisper_transcribe(clip_path: str, model_size: str, lang: str | None):
-    import whisper
+def _cloud_key(provider: str) -> str:
+    """API key from the environment, else from VidSage's .streamlit/secrets.toml."""
+    name = {"groq": "GROQ_API_KEY", "openai": "OPENAI_API_KEY"}[provider]
+    if os.environ.get(name):
+        return os.environ[name]
+    try:
+        import tomllib
+        secrets = Path(__file__).with_name(".streamlit") / "secrets.toml"
+        return tomllib.loads(secrets.read_text(encoding="utf-8")).get(name, "")
+    except Exception:
+        return ""
+
+
+def whisper_transcribe(clip_path: str, model_size: str, lang: str | None, stt: str = "local"):
     from subprocess import run
     with tempfile.TemporaryDirectory() as td:
         wav = os.path.join(td, "audio.wav")
         run(["ffmpeg", "-y", "-i", clip_path, "-vn", "-acodec", "pcm_s16le",
              "-ar", "16000", "-ac", "1", wav], capture_output=True, check=True)
+        if stt != "local":
+            from cloud_stt import PROVIDERS, transcribe_cloud
+            segs, code = transcribe_cloud(wav, stt, _cloud_key(stt), language=lang)
+            return segs, f"{PROVIDERS[stt]['label']} cloud Whisper ({PROVIDERS[stt]['model']}, language: {code})"
+        import whisper
         model = whisper.load_model(model_size)
         res = model.transcribe(wav, verbose=False, task="transcribe", language=lang)
     segs = [{"start": s["start"], "end": s["end"], "text": s["text"].strip()}
@@ -191,6 +208,10 @@ def main() -> int:
     ap.add_argument("--at", help="comma-separated timestamps to grab exact frames, e.g. 14:05,14:40")
     ap.add_argument("--transcript-only", action="store_true", help="skip frames")
     ap.add_argument("--no-transcript", action="store_true", help="skip transcript")
+    ap.add_argument("--stt", choices=["local", "groq", "openai"], default="local",
+                    help="speech-to-text when there are no captions: local Whisper (free), or cloud "
+                         "Groq/OpenAI (fast; uploads the AUDIO only; key from GROQ_API_KEY / "
+                         "OPENAI_API_KEY or .streamlit/secrets.toml)")
     ap.add_argument("--whisper-model", default="base",
                     choices=["base", "small", "medium", "large"])
     ap.add_argument("--lang", help="language code for captions/Whisper (e.g. en, ms, zh)")
@@ -251,7 +272,7 @@ def main() -> int:
             # Whisper fallback on the trimmed clip
             if segments is None and not a.no_transcript:
                 log("no captions — transcribing with Whisper…")
-                segments, tx_label = whisper_transcribe(clip, a.whisper_model, a.lang)
+                segments, tx_label = whisper_transcribe(clip, a.whisper_model, a.lang, a.stt)
                 segments = [{**s, "start": s["start"] + offset, "end": s["end"] + offset}
                             for s in segments]
 

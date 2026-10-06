@@ -8,6 +8,7 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ## 🆕 What's new in v1.1 – v1.3
 
+- **🎥 Gemini watches the whole video (v1.5)** — optional checkbox under the Gemini engine: Gemini sees the motion and hears the audio instead of reading still frames. Public YouTube links go straight to Gemini; other videos are uploaded to Google and deleted straight after. Off by default because the full video leaves your PC.
 - **⚡ Cloud transcription (v1.4)** — optional Groq or OpenAI Whisper for videos without captions: roughly a minute instead of an hour, about $0.11 (Groq) or $0.36 (OpenAI) per hour of audio. Only the audio is uploaded, never the video; local Whisper stays the free, private default.
 - **📚 Batch online videos (v1.3)** — in *Online Video URL* mode, paste several links (one per line) and VidSage analyses them one after another. A broken link doesn't stop the rest; you get a summary table and a one-click download of all explanations.
 - **✂️ Time Range** — analyse only part of a long video (Start/End in the sidebar). Timestamps stay on the original timeline.
@@ -50,6 +51,7 @@ Full details in [CHANGELOG.md](CHANGELOG.md).
 - Plain Text (`.txt`)
 
 ### ✂️ Control & Automation
+- **Gemini whole-video mode** — Gemini sees motion and hears audio (opt-in)
 - **Cloud or local transcription** — Groq / OpenAI Whisper (fast) or local Whisper (free, private)
 - **Batch online videos** — paste many YouTube/Vimeo/TikTok… links at once
 - **Time Range** — analyse only a chosen window of the video

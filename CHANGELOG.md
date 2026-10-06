@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.5.0 — 2026-10-06
+
+### Added
+- **Gemini watches the whole video (opt-in).** With the Gemini engine selected, tick *Let Gemini watch the
+  whole video*. Gemini then analyses the actual video (about 1 frame per second plus the audio) instead of
+  a handful of still frames, so it can follow motion and sound. Public YouTube links are passed straight to
+  Gemini; other videos (and any Time Range clip) are uploaded to Google's Files API and deleted right after
+  the request. If video mode fails for any reason it falls back to the normal frame-based analysis.
+  Cost is about 100 tokens per second of video (free on the free tier).
+  **Privacy:** the whole video leaves your PC, and on the free tier Google may use the data to improve
+  its products — keep it off for private videos.
+  Verified live: Gemini correctly reported two random codes shown on screen plus the audio tone from an
+  uploaded test clip, a YouTube link with no transcript, and the uploaded file was removed afterwards.
+
 ## v1.4.0 — 2026-10-06
 
 ### Added

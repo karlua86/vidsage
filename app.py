@@ -2723,6 +2723,84 @@ def analyze_with_gemini(timestamped_transcript, frames, timestamps, duration, ap
                 raise
 
 
+def analyze_with_gemini_video(video_path: str, timestamped_transcript, duration, api_key, video_type,
+                              output_language: str = "English",
+                              slide_images: list[str] | None = None,
+                              slide_sections: list[dict] | None = None,
+                              youtube_url: str | None = None):
+    """Let Gemini WATCH the video itself (it samples ~1 frame/s and hears the audio).
+    A public YouTube link is passed straight to Gemini; anything else is uploaded to Google's
+    Files API for the duration of the request and deleted afterwards."""
+    from google import genai as google_genai
+    from google.genai import types
+    import time
+
+    client = google_genai.Client(api_key=api_key)
+    lang_instruction = OUTPUT_LANGUAGES.get(output_language, OUTPUT_LANGUAGES["English"])
+    uploaded = None
+    try:
+        parts = []
+        if youtube_url:
+            parts.append(types.Part(file_data=types.FileData(file_uri=youtube_url)))
+        else:
+            uploaded = client.files.upload(file=video_path)
+            for _ in range(120):                      # wait up to ~10 min for Google to process it
+                state = getattr(getattr(uploaded, "state", None), "name", "ACTIVE")
+                if state == "ACTIVE":
+                    break
+                if state == "FAILED":
+                    raise RuntimeError("Google could not process the uploaded video.")
+                time.sleep(5)
+                uploaded = client.files.get(name=uploaded.name)
+            parts.append(types.Part.from_uri(file_uri=uploaded.uri, mime_type=uploaded.mime_type))
+
+        if slide_images:
+            parts.append(types.Part.from_text(
+                text=f"## UPLOADED SLIDES ({len(slide_images)} slide(s))\n"
+                     "These are the actual presentation slides used in the video. "
+                     "Use them as the ground truth for any on-screen content."))
+            _label_at = {}
+            if slide_sections and len(slide_sections) > 1:
+                for sec in slide_sections:
+                    if sec["count"] > 0:
+                        _label_at[sec["start"]] = sec["name"]
+            for i, b64 in enumerate(slide_images):
+                if i in _label_at:
+                    parts.append(types.Part.from_text(text=f"### 📄 Document: {_label_at[i]}"))
+                parts.append(types.Part.from_bytes(data=base64.b64decode(b64), mime_type="image/jpeg"))
+            parts.append(types.Part.from_text(text="---"))
+
+        slides_note = (
+            f"\n**UPLOADED SLIDES:** {len(slide_images)} slide(s) provided above "
+            f"— treat these as the primary visual reference.\n" if slide_images else "")
+        sources_description = (
+            "the video itself (which you can see AND hear)" + (", the uploaded slides," if slide_images else ""))
+        parts.append(types.Part.from_text(text=ANALYSIS_PROMPT.format(
+            video_type=video_type, duration=fmt_time(duration),
+            transcript=timestamped_transcript,
+            slides_note=slides_note,
+            sources_description=sources_description,
+            verbosity_note=_verbosity_note(len(slide_images) if slide_images else 0, 0),
+            output_language_instruction=lang_instruction)))
+
+        for attempt in range(3):
+            try:
+                return _gemini_generate(client, parts).text
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    wait = 30 * (attempt + 1)
+                    st.warning(f"⏳ Gemini rate limit hit — waiting {wait}s before retry ({attempt+1}/3)…")
+                    time.sleep(wait)
+                else:
+                    raise
+    finally:
+        if uploaded is not None:                       # never leave the video on Google's servers
+            try:
+                client.files.delete(name=uploaded.name)
+            except Exception:
+                pass
+
+
 def analyze_with_openai(timestamped_transcript, frames, timestamps, duration, api_key, video_type,
                         output_language: str = "English",
                         slide_images: list[str] | None = None,
@@ -2976,6 +3054,7 @@ with st.sidebar:
     st.markdown("### 🎬 VidSage")
     st.caption("AI-powered video explainer")
 
+    gemini_watch_video = False
     # ── AI Engine ──
     _sidebar_section("🤖 AI Engine")
     ai_engine = st.radio(
@@ -2994,6 +3073,15 @@ with st.sidebar:
         default_gemini = _secret("GEMINI_API_KEY")
         gemini_key = st.text_input("Gemini API Key", value=default_gemini, type="password",
                                    help="Get free key at aistudio.google.com")
+        gemini_watch_video = st.checkbox(
+            "🎥 Let Gemini watch the whole video (sees motion, hears audio)",
+            value=False,
+            help="Uploads the VIDEO to Google (deleted right after; public YouTube links are passed "
+                 "directly). Better for demos and anything where motion matters. Costs more tokens "
+                 "(~100 per second of video). On the free tier Google may use your data to improve "
+                 "its products — don't use it for private videos.")
+        if gemini_watch_video:
+            st.caption("⚠️ The full video is sent to Google. Falls back to frames if it fails.")
         claude_key = ""
         openai_key = ""
     elif ai_engine == "Claude (Paid)":
@@ -3791,7 +3879,7 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                     st.markdown(c["title"])
 
         with st.expander("📋 YouTube-Style Text (copy & paste)", expanded=False):
-            st.text_area("", chapters_text, height=200,
+            st.text_area("Chapters", chapters_text, height=200,
                          key=f"ta_chapters_{_wkey}", label_visibility="collapsed")
             st.download_button("⬇️ Download Chapters (.txt)", data=chapters_text,
                                file_name=f"{base_name}_chapters.txt", mime="text/plain",
@@ -4593,10 +4681,25 @@ def process_one_video(video_file, video_name: str, status_container,
         )
         _slide_note = (f" + {len(slide_images)} slide(s)" if slide_images else "")
         status_container.write(f"🤖 Analysing with {engine_label}{_slide_note}…")
+        _yt_direct = st.session_state.pop("_gemini_youtube_url", None)
         if ai_engine == "Gemini (Free)":
-            explanation = analyze_with_gemini(
-                timestamped_transcript, frames, frame_ts, duration, gemini_key, video_type,
-                output_language, slide_images=slide_images, slide_sections=slide_sections)
+            explanation = None
+            if gemini_watch_video:
+                try:
+                    status_container.write(
+                        "🎥 Gemini is watching the video "
+                        + ("(YouTube link passed directly)…" if (_yt_direct and not _rng_window)
+                           else "(uploading it to Google first)…"))
+                    explanation = analyze_with_gemini_video(
+                        video_path, timestamped_transcript, duration, gemini_key, video_type,
+                        output_language, slide_images=slide_images, slide_sections=slide_sections,
+                        youtube_url=None if _rng_window else _yt_direct)
+                except Exception as _gv_err:
+                    status_container.write(f"   → ⚠️ Video mode failed ({str(_gv_err)[:120]}); using frames instead.")
+            if explanation is None:
+                explanation = analyze_with_gemini(
+                    timestamped_transcript, frames, frame_ts, duration, gemini_key, video_type,
+                    output_language, slide_images=slide_images, slide_sections=slide_sections)
         elif _is_oai(ai_engine):
             explanation = analyze_with_openai(
                 timestamped_transcript, frames, frame_ts, duration, openai_key, video_type,
@@ -5553,6 +5656,8 @@ def _analyse_online_url(yt_url: str, yt_status) -> tuple:
         video_name = f"{video_title}.mp4"
 
         # ── Step 3: analyse (Whisper skipped if transcript found) ──
+        if is_youtube_url(yt_url):
+            st.session_state["_gemini_youtube_url"] = yt_url      # lets Gemini watch it directly
         result = process_one_video(
             video_bytes, video_name, yt_status,
             frame_mode, max_frames,

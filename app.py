@@ -6,6 +6,7 @@ import tempfile
 import os
 import subprocess
 import re
+import hashlib
 import json
 import numpy as np
 import pandas as pd
@@ -3601,14 +3602,23 @@ def _show_results(video_name, explanation, chapters, full_transcript,
         _cur_ts_trans   = st.session_state.get(
             f"edit_ts_{base_name}", timestamped_transcript)
 
-        # Word: fast to generate, always eager
-        try:
-            word_bytes = export_word(video_name, active_explanation,
-                                     _cur_full_trans, _cur_ts_trans, chapters)
-            _word_err = None
-        except Exception as _we:
-            word_bytes = None
-            _word_err = str(_we)
+        # Word: generated once per content change and remembered (rebuilding it on every click made the
+        # results screen lag — about 0.2 s for a 10-min video, nearly 1 s for a 2-hour one).
+        _word_key = hashlib.md5(json.dumps(
+            [video_name, active_explanation, _cur_full_trans, _cur_ts_trans, chapters],
+            default=str, ensure_ascii=False).encode("utf-8")).hexdigest()
+        _word_memo = st.session_state.get("_word_memo")
+        if _word_memo and _word_memo[0] == _word_key:
+            word_bytes, _word_err = _word_memo[1], None
+        else:
+            try:
+                word_bytes = export_word(video_name, active_explanation,
+                                         _cur_full_trans, _cur_ts_trans, chapters)
+                _word_err = None
+                st.session_state["_word_memo"] = (_word_key, word_bytes)
+            except Exception as _we:
+                word_bytes = None
+                _word_err = str(_we)
 
         # PDF: slow (launches Word), so use lazy generation via session state
         _pdf_cache_key = f"_pdf_cache_{_wkey}"
@@ -4300,11 +4310,15 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                 if st.button("✅ Select all", key=f"fsel_all_{_wkey}",
                              width='stretch'):
                     st.session_state[_fsel_key] = [True] * len(frames)
+                    for _i in range(len(frames)):
+                        st.session_state[f"fchk_{_wkey}_{_i}"] = True
                     st.rerun()
             with _fh2:
                 if st.button("☐ Deselect all", key=f"fsel_none_{_wkey}",
                              width='stretch'):
                     st.session_state[_fsel_key] = [False] * len(frames)
+                    for _i in range(len(frames)):
+                        st.session_state[f"fchk_{_wkey}_{_i}"] = False
                     st.rerun()
 
             st.markdown("")
@@ -4318,14 +4332,14 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                         caption=f"#{i+1}  ·  {fmt_time(ts)}",
                         width='stretch',
                     )
-                    checked = st.checkbox(
-                        "Include in analysis",
-                        value=sel[i],
-                        key=f"fchk_{_wkey}_{i}",
-                    )
-                    if checked != sel[i]:
-                        st.session_state[_fsel_key][i] = checked
-                        st.rerun()
+                    _ck = f"fchk_{_wkey}_{i}"
+                    if _ck not in st.session_state:              # set the start value via session state only
+                        st.session_state[_ck] = sel[i]
+                    checked = st.checkbox("Include in analysis", key=_ck)
+                    st.session_state[_fsel_key][i] = checked      # no st.rerun(): it doubled the redraw cost
+
+            # The count below the grid reflects the boxes as ticked in THIS run.
+            n_selected = sum(st.session_state[_fsel_key])
 
             # ── Re-analyse with selected frames ───────────────────────────
             st.markdown("---")

@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.6.2 — 2026-10-07
+
+### Fixed
+- **Laggy results screen.** Two things made every click on a finished analysis slow, and the cost grew with
+  the length of the video:
+  - the Word (.docx) export was rebuilt on every redraw (about 0.2 s for a 10-minute video, nearly 1 s for a
+    2-hour one) — it is now built once and remembered until the content changes;
+  - ticking a frame checkbox forced a second full redraw (`st.rerun()`) — removed; the selected-frames count
+    now updates in the same pass, and *Select all / Deselect all* tick the boxes directly.
+  Measured redraw / checkbox-click time: 10-min video 0.91 → 0.63 s, 1-hour video 1.66 → 0.67 s,
+  2-hour video 2.64 → 0.73 s (test harness; the real app is faster still).
+- Removed a Streamlit warning about how the frame checkboxes got their start value.
+
 ## v1.6.1 — 2026-10-06
 
 ### Added

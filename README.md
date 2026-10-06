@@ -8,6 +8,8 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ## 🆕 What's new in v1.1 – v1.3
 
+- **🚀 Local GPU transcription (v1.6)** — use your own [Faster-Whisper-XXL](https://github.com/Purfview/whisper-standalone-win) folder from the sidebar: free, private, runs on your NVIDIA GPU (about 3–4× faster than regular local Whisper on a laptop GPU in testing). VidSage only runs it; it never changes that folder.
+- **🛠️ Fixed Multilingual mode (v1.6)** — the old language hint made Whisper hallucinate (fake subtitle credits, "thanks for watching" loops, even repeating the hint). No hint is sent now; use the new *Names & terms* box for spelling.
 - **🎥 Gemini watches the whole video (v1.5)** — optional checkbox under the Gemini engine: Gemini sees the motion and hears the audio instead of reading still frames. Public YouTube links go straight to Gemini; other videos are uploaded to Google and deleted straight after. Off by default because the full video leaves your PC.
 - **⚡ Cloud transcription (v1.4)** — optional Groq or OpenAI Whisper for videos without captions: roughly a minute instead of an hour, about $0.11 (Groq) or $0.36 (OpenAI) per hour of audio. Only the audio is uploaded, never the video; local Whisper stays the free, private default.
 - **📚 Batch online videos (v1.3)** — in *Online Video URL* mode, paste several links (one per line) and VidSage analyses them one after another. A broken link doesn't stop the rest; you get a summary table and a one-click download of all explanations.
@@ -52,6 +54,7 @@ Full details in [CHANGELOG.md](CHANGELOG.md).
 
 ### ✂️ Control & Automation
 - **Gemini whole-video mode** — Gemini sees motion and hears audio (opt-in)
+- **Local GPU transcription** via your Faster-Whisper-XXL folder
 - **Cloud or local transcription** — Groq / OpenAI Whisper (fast) or local Whisper (free, private)
 - **Batch online videos** — paste many YouTube/Vimeo/TikTok… links at once
 - **Time Range** — analyse only a chosen window of the video

@@ -16,6 +16,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from cloud_stt import transcribe_cloud, PROVIDERS as STT_PROVIDERS
+from xxl_stt import find_xxl, installed_models as xxl_installed_models, transcribe_xxl
 from frames_core import (
     frame_signature as _frame_signature,
     frame_is_duplicate as _frame_is_duplicate,
@@ -476,6 +477,11 @@ WHISPER_LANGUAGES: dict[str, tuple] = {
 # Flat list of base language names used in the multilingual multi-select.
 # Only one entry per language family (no regional variants) — Whisper auto-detects
 # the variant when lang_code=None and the initial_prompt lists the languages.
+# Whisper treats its "initial prompt" as text that came BEFORE the audio — not as an instruction.
+# The old multilingual hint ("Transcribe all languages exactly as spoken…") made it hallucinate
+# ("字幕由Amara.org社区提供", "Terima kasih kerana menonton!") or echo the hint back, and even natural
+# sample phrases leaked into the transcript and shifted Chinese script / dropped English words in testing.
+# So Multilingual mode now sends NO hint: Whisper auto-detects the language by itself.
 MULTILINGUAL_BASE_OPTIONS = [
     "Afrikaans", "Albanian", "Amharic", "Arabic", "Armenian", "Azerbaijani",
     "Bashkir", "Basque", "Belarusian", "Bengali", "Bosnian", "Bulgarian",
@@ -559,6 +565,8 @@ def transcribe_audio(audio_path: str, model_size: str = "medium",
 
 
 def _stt_label(model_or_engine: str) -> str:
+    if model_or_engine == "xxl":
+        return f"Faster-Whisper-XXL · {globals().get('xxl_model', 'large-v2')} · local GPU"
     return {"groq": "Groq cloud · whisper-large-v3",
             "openai": "OpenAI cloud · whisper-1"}.get(model_or_engine, model_or_engine)
 
@@ -566,12 +574,23 @@ def _stt_label(model_or_engine: str) -> str:
 def transcribe_audio_any(audio_path: str, model_size: str = "medium",
                          lang_code: str | None = None, initial_prompt: str = "",
                          engine: str | None = None, groq_api_key: str | None = None,
-                         openai_api_key: str | None = None):
+                         openai_api_key: str | None = None, xxl_exe_path: str | None = None,
+                         xxl_model_name: str | None = None):
     """Transcribe with local Whisper (default) or cloud Whisper (Groq / OpenAI).
     Same return shape as transcribe_audio().  The engine and keys default to the sidebar choices."""
     engine = engine if engine is not None else globals().get("stt_engine", "local")
     if engine == "local":
         return transcribe_audio(audio_path, model_size, lang_code, initial_prompt)
+    if engine == "xxl":
+        exe = xxl_exe_path or globals().get("xxl_exe")
+        if not exe:
+            raise ValueError("Faster-Whisper-XXL wasn't found — paste its folder in the sidebar (Transcription).")
+        segments, detected_lang = transcribe_xxl(
+            audio_path, exe, xxl_model_name or globals().get("xxl_model", "large-v2"),
+            language=lang_code, prompt=initial_prompt)
+        full_text = " ".join(sg["text"] for sg in segments).strip()
+        timestamped_text = "\n".join(f"[{fmt_time(sg['start'])}] {sg['text']}" for sg in segments) or full_text
+        return full_text, timestamped_text, segments, detected_lang
 
     key = (groq_api_key if groq_api_key is not None else globals().get("groq_key", "")) \
         if engine == "groq" else \
@@ -3113,21 +3132,42 @@ with st.sidebar:
     _sidebar_section("🎙️ Transcription")
     _stt_choice = st.radio(
         "Transcription engine:",
-        options=["💻 Local Whisper", "⚡ Groq Cloud", "☁️ OpenAI Whisper"],
+        options=["💻 Local Whisper", "🚀 Local GPU (Faster-Whisper-XXL)", "⚡ Groq Cloud", "☁️ OpenAI Whisper"],
         index=0,
         captions=[
-            "Free & private — runs on your PC (slow without a strong GPU)",
+            "Free & private — runs on your PC's processor (slow)",
+            "Free & private — uses your NVIDIA GPU via your Faster-Whisper-XXL folder",
             "Very fast, ~$0.11 per hour of audio, large-v3 model",
             "Fast, ~$0.36 per hour of audio",
         ],
         help="Only used when the video has no YouTube captions. Cloud options upload the "
              "AUDIO track (never the video) to the provider.",
     )
-    stt_engine = {"💻 Local Whisper": "local", "⚡ Groq Cloud": "groq",
-                  "☁️ OpenAI Whisper": "openai"}[_stt_choice]
+    stt_engine = {"💻 Local Whisper": "local", "🚀 Local GPU (Faster-Whisper-XXL)": "xxl",
+                  "⚡ Groq Cloud": "groq", "☁️ OpenAI Whisper": "openai"}[_stt_choice]
     groq_key = ""
     openai_stt_key = ""
-    if stt_engine == "groq":
+    xxl_exe = None
+    xxl_model = "large-v2"
+    if stt_engine == "xxl":
+        _xxl_found = find_xxl(_secret("FW_XXL_PATH"))
+        _xxl_text = st.text_input(
+            "Faster-Whisper-XXL folder",
+            value=str(_xxl_found.parent) if _xxl_found else "",
+            help="The folder that contains faster-whisper-xxl.exe. Saved for next time if you add "
+                 'FW_XXL_PATH = "..." to .streamlit/secrets.toml.')
+        xxl_exe = find_xxl(_xxl_text, strict=True)
+        if xxl_exe is None:
+            st.error("Couldn't find faster-whisper-xxl.exe in that folder. Download it from "
+                     "github.com/Purfview/whisper-standalone-win and paste its folder here.")
+        else:
+            _xxl_models = xxl_installed_models(xxl_exe) or ["large-v2"]
+            xxl_model = st.selectbox(
+                "Model", _xxl_models, index=0,
+                help="Models already inside your XXL folder. large-v2 was the steadier choice for Malay and "
+                     "Chinese–English calls in testing; large-v3 can mis-detect Malay as English.")
+            st.caption("🔒 Runs on this PC — nothing is uploaded. Reads your XXL folder; never changes it.")
+    elif stt_engine == "groq":
         groq_key = st.text_input("Groq API Key", value=_secret("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", ""),
                                  type="password", help="Free key at console.groq.com")
         st.caption("☁️ Audio (not video) is sent to Groq for transcription.")
@@ -3146,7 +3186,7 @@ with st.sidebar:
             captions=["Fastest, less accurate", "Good balance", "Recommended ✓", "Most accurate, slow"],
         )
     else:
-        whisper_model = stt_engine      # cloud: the model is fixed by the provider
+        whisper_model = stt_engine      # XXL / cloud: the model is fixed by the choice above
     audio_lang_mode = st.radio(
         "Audio language mode",
         ["Single language", "Multilingual"],
@@ -3170,21 +3210,28 @@ with st.sidebar:
             "Languages spoken in this video",
             options=MULTILINGUAL_BASE_OPTIONS,
             default=["English", "Malay"],
-            help="Select all languages that appear in the video. Whisper will auto-detect "
-                 "which language is spoken in each segment.",
+            help="Which languages appear in the video (used as a label). Whisper detects the spoken "
+                 "language by itself — no instruction is sent to it, because hints made it hallucinate. "
+                 "Add key names in the box below if some are being misspelled.",
         )
         if _multi_langs:
             _lang_list = ", ".join(_multi_langs)
             whisper_lang_code    = None   # let Whisper auto-detect per segment
-            whisper_initial_prompt = (
-                f"This video contains multiple languages: {_lang_list}. "
-                f"Transcribe all languages exactly as spoken, switching language as the speaker does."
-            )
+            whisper_initial_prompt = ""   # no hint: hints caused hallucinations (see note above)
             whisper_language_display = f"Multilingual ({_lang_list})"
         else:
             whisper_lang_code      = None
             whisper_initial_prompt = ""
             whisper_language_display = "Auto-detect"
+
+    _terms = st.text_input(
+        "Names & terms to spell correctly (optional)",
+        placeholder="e.g. Rainz, Gudang, Puan Noor",
+        help="A short comma-separated list. It nudges Whisper towards these spellings. "
+             "(Keep it to words and names — full sentences or instructions can make Whisper hallucinate.)",
+    ).strip()
+    if _terms:
+        whisper_initial_prompt = f"{whisper_initial_prompt} {_terms}".strip()
 
     _AUTO_LANG = "Auto (match video)"
     _out_lang_options = [_AUTO_LANG] + list(OUTPUT_LANGUAGES.keys())
@@ -4477,12 +4524,12 @@ def process_one_video(video_file, video_name: str, status_container,
 
         model_times = {"base": "5–10 min", "small": "10–20 min",
                        "medium": "30–60 min", "large": "60–120 min",
-                       "groq": "1–3 min", "openai": "1–5 min"}
+                       "groq": "1–3 min", "openai": "1–5 min", "xxl": "about 20 min per hour of audio"}
         est = model_times.get(whisper_model, "a few minutes")
 
         # Whisper speed multipliers: how many seconds of audio processed per wall-clock second
         _whisper_speed = {"base": 8.0, "small": 4.0, "medium": 2.0, "large": 1.0,
-                         "groq": 60.0, "openai": 30.0}
+                         "groq": 60.0, "openai": 30.0, "xxl": 3.0}
 
         def _run_whisper_threaded(label: str):
             """Extract audio, transcribe, return (full_text, timestamped, segments, detected_lang)."""

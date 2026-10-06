@@ -1,5 +1,29 @@
 # Changelog
 
+## v1.6.0 — 2026-10-06
+
+### Added
+- **Local GPU transcription via Faster-Whisper-XXL.** New *Transcription engine* choice
+  "🚀 Local GPU (Faster-Whisper-XXL)". VidSage finds your XXL folder automatically (or paste it; save it
+  with `FW_XXL_PATH` in `.streamlit/secrets.toml`), lists the models already inside it, and runs the
+  `.exe` on the audio. Free and private; it only reads the folder and never modifies it. A wrong folder gives
+  a clear error. Verified on real Malay and Chinese–English call recordings (output identical to a
+  standalone XXL run). `watch.py --stt xxl [--fw-model large-v2]` does the same from Claude Code.
+- **Names & terms** box (Transcription section): a short comma-separated list that nudges Whisper towards
+  spellings such as names or buildings.
+
+### Fixed
+- **Multilingual mode no longer sends a hint.** The old instruction-style hint ("This video contains
+  multiple languages… Transcribe all languages exactly as spoken…") made Whisper hallucinate in 4 of 6 test
+  runs: fake subtitle credits ("字幕由Amara.org社区提供"), "thanks for watching" loops, "please like and subscribe",
+  or the hint text repeated. Natural sample phrases were also tried but leaked into the transcript, switched
+  Chinese script and dropped English words, so no hint is used; Whisper detects the language itself.
+
+### Notes from testing (large-v2 vs large-v3, on Malay and Chinese–English call recordings)
+- large-v2 was the steadier model: large-v3 mis-detected Malay as English (and wrote an English version),
+  and produced looping text when Malay was forced. large-v3 spelled some English words better inside Chinese.
+  The XXL engine therefore defaults to large-v2.
+
 ## v1.5.0 — 2026-10-06
 
 ### Added

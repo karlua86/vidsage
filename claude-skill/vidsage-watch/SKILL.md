@@ -26,6 +26,7 @@ Set `VIDSAGE_DIR` to your VidSage folder (the one containing `watch.py`), e.g.
 - `--mode dense|scene|interval` — dense (default) = sample + drop near-duplicates, best for slides/lectures.
 - `--dedup 0.80–0.92` — lower drops more near-identical frames.
 - Captions default to English; the report lists other available languages — pass `--lang CODE` (e.g. `ms`, `zh`, `ar`) for those.
+- `--stt xxl` — transcribe on the local GPU with the user's Faster-Whisper-XXL install (free, private; folder from FW_XXL_PATH or auto-detected; model via `--fw-model`, default large-v2).
 - `--stt groq|openai` — fast cloud transcription when a video has no captions (uploads the AUDIO only; needs GROQ_API_KEY / OPENAI_API_KEY in the environment or in VidSage's .streamlit/secrets.toml). Default is free local Whisper.
 - `--max-frames N`, `--interval SECONDS`, `--lang xx`, `--whisper-model base|small|medium|large`.
 

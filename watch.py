@@ -124,8 +124,12 @@ def _xxl_configured() -> str:
         return ""
 
 
+FILTER_ALIASES = {"off": "Off", "denoise": "Light denoise", "rnnoise": "Remove non-speech (RNNoise)",
+                  "boost": "Boost quiet voices", "voice": "Isolate voice (strong, slow)"}
+
+
 def whisper_transcribe(clip_path: str, model_size: str, lang: str | None, stt: str = "local",
-                       fw_model: str = "large-v2"):
+                       fw_model: str = "large-v2", hotwords: str = "", xxl_filter: str = "off"):
     from subprocess import run
     with tempfile.TemporaryDirectory() as td:
         wav = os.path.join(td, "audio.wav")
@@ -136,7 +140,8 @@ def whisper_transcribe(clip_path: str, model_size: str, lang: str | None, stt: s
             exe = find_xxl(_xxl_configured())
             if exe is None:
                 raise RuntimeError(SETUP_HINT)
-            segs, code = transcribe_xxl(wav, exe, fw_model, language=lang)
+            segs, code = transcribe_xxl(wav, exe, fw_model, language=lang, hotwords=hotwords,
+                                        noise_filter=FILTER_ALIASES.get(xxl_filter, 'Off'))
             return segs, f"Faster-Whisper-XXL ({fw_model}, local GPU, language: {code})"
         if stt != "local":
             from cloud_stt import PROVIDERS, transcribe_cloud
@@ -232,6 +237,10 @@ def main() -> int:
                          "Groq/OpenAI (fast; uploads the AUDIO only; key from GROQ_API_KEY / "
                          "OPENAI_API_KEY or .streamlit/secrets.toml)")
     ap.add_argument("--fw-model", default="large-v2", help="model for --stt xxl (default large-v2)")
+    ap.add_argument("--hotwords", default="", help="names/terms to favour with --stt xxl, comma-separated")
+    ap.add_argument("--xxl-filter", choices=list(FILTER_ALIASES), default="off",
+                    help="audio clean-up for --stt xxl: denoise | rnnoise | boost | voice (leave off unless the "
+                         "recording is noisy — it did not help on clear calls)")
     ap.add_argument("--whisper-model", default="base",
                     choices=["base", "small", "medium", "large"])
     ap.add_argument("--lang", help="language code for captions/Whisper (e.g. en, ms, zh)")
@@ -292,7 +301,8 @@ def main() -> int:
             # Whisper fallback on the trimmed clip
             if segments is None and not a.no_transcript:
                 log("no captions — transcribing with Whisper…")
-                segments, tx_label = whisper_transcribe(clip, a.whisper_model, a.lang, a.stt, a.fw_model)
+                segments, tx_label = whisper_transcribe(clip, a.whisper_model, a.lang, a.stt, a.fw_model,
+                                                        a.hotwords, a.xxl_filter)
                 segments = [{**s, "start": s["start"] + offset, "end": s["end"] + offset}
                             for s in segments]
 

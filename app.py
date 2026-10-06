@@ -16,7 +16,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 from cloud_stt import transcribe_cloud, PROVIDERS as STT_PROVIDERS
-from xxl_stt import find_xxl, installed_models as xxl_installed_models, transcribe_xxl
+import xxl_stt as _xxl_mod
+from xxl_stt import NOISE_FILTERS, find_xxl, installed_models as xxl_installed_models, transcribe_xxl
 from frames_core import (
     frame_signature as _frame_signature,
     frame_is_duplicate as _frame_is_duplicate,
@@ -587,7 +588,8 @@ def transcribe_audio_any(audio_path: str, model_size: str = "medium",
             raise ValueError("Faster-Whisper-XXL wasn't found — paste its folder in the sidebar (Transcription).")
         segments, detected_lang = transcribe_xxl(
             audio_path, exe, xxl_model_name or globals().get("xxl_model", "large-v2"),
-            language=lang_code, prompt=initial_prompt)
+            language=lang_code, prompt=initial_prompt, hotwords=globals().get("names_terms", ""),
+            noise_filter=globals().get("xxl_filter", "Off"))
         full_text = " ".join(sg["text"] for sg in segments).strip()
         timestamped_text = "\n".join(f"[{fmt_time(sg['start'])}] {sg['text']}" for sg in segments) or full_text
         return full_text, timestamped_text, segments, detected_lang
@@ -3149,6 +3151,8 @@ with st.sidebar:
     openai_stt_key = ""
     xxl_exe = None
     xxl_model = "large-v2"
+    xxl_filter = "Off"
+    names_terms = ""
     if stt_engine == "xxl":
         _xxl_found = find_xxl(_secret("FW_XXL_PATH"))
         _xxl_text = st.text_input(
@@ -3166,6 +3170,12 @@ with st.sidebar:
                 "Model", _xxl_models, index=0,
                 help="Models already inside your XXL folder. large-v2 was the steadier choice for Malay and "
                      "Chinese–English calls in testing; large-v3 can mis-detect Malay as English.")
+            xxl_filter = st.selectbox(
+                "Noise filter (optional)", list(NOISE_FILTERS), index=0,
+                help="Cleans the audio before transcribing. In testing on clear phone calls these filters did "
+                     "NOT improve accuracy and sometimes made it worse (they can drop a call's first words), "
+                     "so leave it Off unless the recording is genuinely noisy and compare the results. "
+                     "'Isolate voice' stayed closest to the unfiltered text but takes about twice as long.")
             st.caption("🔒 Runs on this PC — nothing is uploaded. Reads your XXL folder; never changes it.")
     elif stt_engine == "groq":
         groq_key = st.text_input("Groq API Key", value=_secret("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", ""),
@@ -3227,10 +3237,12 @@ with st.sidebar:
     _terms = st.text_input(
         "Names & terms to spell correctly (optional)",
         placeholder="e.g. Rainz, Gudang, Puan Noor",
-        help="A short comma-separated list. It nudges Whisper towards these spellings. "
+        help="A short comma-separated list. It nudges Whisper towards these spellings (sent as hotwords "
+             "with Faster-Whisper-XXL, which pushes harder — only list words that really occur). "
              "(Keep it to words and names — full sentences or instructions can make Whisper hallucinate.)",
     ).strip()
-    if _terms:
+    names_terms = _terms
+    if _terms and stt_engine != "xxl":      # Faster-Whisper-XXL gets them as hotwords instead
         whisper_initial_prompt = f"{whisper_initial_prompt} {_terms}".strip()
 
     _AUTO_LANG = "Auto (match video)"
@@ -4577,6 +4589,8 @@ def process_one_video(video_file, video_name: str, status_container,
                 raise ec["err"]
             total_fmt = _fmt_analysis_time(time.time() - t0)
             whisper_bar.progress(100, text=f"Transcription complete ✅  (took {total_fmt})")
+            if stt_engine == "xxl" and _xxl_mod.LAST_NOTE:
+                status_container.write(f"   → ⚠️ {_xxl_mod.LAST_NOTE}")
             return rc["out"]
 
         # ── Resolve auto frame count (needs duration first) ──────────────────

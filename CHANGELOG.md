@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.6.1 — 2026-10-06
+
+### Added
+- **Noise filter** (Faster-Whisper-XXL engine): Off (default) / Light denoise / Remove non-speech (RNNoise) /
+  Boost quiet voices / Isolate voice (strong, ~2× slower). On two clear phone-call recordings none of the
+  filters improved the transcript and several made it worse (changed wording, dropped the first greeting),
+  so the default is Off and the help text says so.
+- **Hotwords** (XXL engine): the *Names & terms* box is sent to XXL as hotwords (other engines still get it as
+  prompt text). `watch.py --hotwords "..." --xxl-filter denoise|rnnoise|boost|voice`.
+- README: new section explaining what Faster-Whisper-XXL is and how to download, unzip and connect it.
+
+### Fixed
+- XXL r245.4 crashed (exit `0xC0000409`) when automatic language detection was combined with hotwords or a filter
+  on a Malay recording; forcing the language avoided it. VidSage now recovers automatically: it runs plain, then
+  re-runs with the detected language fixed, and tells you what happened.
+
 ## v1.6.0 — 2026-10-06
 
 ### Added

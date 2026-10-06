@@ -69,10 +69,54 @@ def installed_models(exe: Path) -> list:
     return sorted(names, key=lambda n: (order.get(n, 9), n))
 
 
+# Optional audio clean-up applied by XXL before transcribing (off by default).
+NOISE_FILTERS = {
+    "Off": [],
+    "Light denoise": ["--ff_fftdn", "12"],                       # FFT denoise at XXL's "normal strength"
+    "Remove non-speech (RNNoise)": ["--ff_rnndn_xiph"],          # neural net that suppresses non-speech sound
+    "Boost quiet voices": ["--ff_speechnorm"],                   # fast speech amplification
+    "Isolate voice (strong, slow)": ["--ff_vocal_extract", "mdx_kim2"],   # vocal separation model
+}
+
+
+LAST_NOTE: str | None = None     # set when options had to be dropped (shown to the user by the app)
+
+
 def transcribe_xxl(audio_path: str, exe: Path, model: str = "large-v2", language: str | None = None,
-                   prompt: str = "", progress=None) -> tuple:
+                   prompt: str = "", progress=None, hotwords: str = "", noise_filter: str = "Off") -> tuple:
     """Run Faster-Whisper-XXL on one audio file.  Returns (segments, language_code) where
-    segments = [{'start','end','text'}, ...].  progress(fraction 0..1) is called when it reports a percentage."""
+    segments = [{'start','end','text'}, ...].  progress(fraction 0..1) is called when it reports a percentage.
+    hotwords: comma-separated names/terms to favour.  noise_filter: a key of NOISE_FILTERS.
+    XXL r245.4 crashed natively in testing when automatic language detection was combined with hotwords or a
+    filter on some recordings (forcing the language avoided it).  So on a crash with those options, VidSage
+    runs plain to learn the language, re-runs with the language pinned, and only if that fails too returns the
+    plain result.  LAST_NOTE explains what happened."""
+    global LAST_NOTE
+    LAST_NOTE = None
+    try:
+        return _run_xxl(audio_path, exe, model, language, prompt, progress, hotwords, noise_filter)
+    except RuntimeError:
+        if not hotwords.strip() and noise_filter == "Off":
+            raise
+        plain = _run_xxl(audio_path, exe, model, language, prompt, progress, "", "Off")
+        used = [x for x in ("hotwords" if hotwords.strip() else "",
+                            f"the '{noise_filter}' filter" if noise_filter != "Off" else "") if x]
+        names = " and ".join(used)
+        if not language and plain[1]:
+            try:
+                pinned = _run_xxl(audio_path, exe, model, plain[1], prompt, progress, hotwords, noise_filter)
+                LAST_NOTE = (f"XXL crashed with {names} and automatic language detection on this recording, "
+                             f"so the language was fixed to '{plain[1]}' for this run.")
+                return pinned
+            except RuntimeError:
+                pass
+        LAST_NOTE = (f"Faster-Whisper-XXL crashed when using {names} on this recording, "
+                     f"so it was transcribed without {'it' if len(used) == 1 else 'them'}.")
+        return plain
+
+
+def _run_xxl(audio_path: str, exe: Path, model: str, language: str | None, prompt: str, progress,
+             hotwords: str, noise_filter: str) -> tuple:
     exe = Path(exe)
     if not exe.is_file():
         raise RuntimeError(SETUP_HINT)
@@ -88,6 +132,9 @@ def transcribe_xxl(audio_path: str, exe: Path, model: str = "large-v2", language
             cmd += ["-l", language]
         if prompt:
             cmd += ["--initial_prompt", prompt]
+        if hotwords.strip():
+            cmd += ["--hotwords", hotwords.strip()]
+        cmd += NOISE_FILTERS.get(noise_filter, [])
 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env,
                                 text=True, encoding="utf-8", errors="replace", cwd=str(exe.parent))

@@ -113,6 +113,42 @@ Opens at **http://localhost:8501**
 
 ---
 
+## 🚀 Optional: Local GPU transcription with Faster-Whisper-XXL
+
+VidSage's default local Whisper runs on your processor, which is slow. If you have an **NVIDIA graphics card**, you can use
+[Faster-Whisper-XXL](https://github.com/Purfview/whisper-standalone-win) instead — free, private (nothing is uploaded), and in
+testing on a laptop GPU about 3–4× faster than regular local Whisper. It is a separate third-party program that VidSage runs for
+you; VidSage does not include it and never changes its folder.
+
+**What it is:** a standalone program from the *whisper-standalone-win* project — no Python needed. It is faster-whisper (Whisper on
+the CTranslate2 engine) packaged as a single `.exe`, with extra features such as audio filters and vocal separation. It uses the
+GPU automatically when it detects an NVIDIA GPU with CUDA, otherwise the CPU.
+
+**Download & install**
+1. Open the project page: **github.com/Purfview/whisper-standalone-win** and go to **Releases**.
+2. Download the **Faster-Whisper-XXL** release for your system (Windows 10+ or Linux; the Windows file is a `.7z` archive).
+3. Unzip it with [7-Zip](https://www.7-zip.org) into a folder of your choice, e.g. `D:\Tools\Faster-Whisper-XXL`. There is no installer.
+4. Keep your NVIDIA graphics driver up to date (needed for GPU use).
+5. **Models** download automatically the first time you use one (from Hugging Face, into a `_models` folder beside the `.exe`).
+   To download one in advance, run it once from a command prompt, for example:
+   `faster-whisper-xxl.exe "some-audio.mp3" --model large-v2`
+
+**Use it in VidSage:** in the sidebar open **Transcription** and choose **🚀 Local GPU (Faster-Whisper-XXL)**. VidSage looks for the
+folder automatically (Downloads and a few common places); otherwise paste the folder that contains `faster-whisper-xxl.exe`. To
+remember it, add `FW_XXL_PATH = 'D:\Tools\Faster-Whisper-XXL'` (single quotes, so the backslashes are taken literally) to `.streamlit/secrets.toml`. Pick one of the models already inside the
+folder. **large-v2** was steadier than large-v3 on Malay and Chinese–English call recordings (large-v3 mis-detected Malay as English).
+
+**Extra options (both optional)**
+- **Names & terms** — the box under Transcription. With this engine the words are sent to XXL as *hotwords*, which nudges spelling
+  (e.g. `Rainz, Puan Noor`). Only list words that really occur; hotwords push hard.
+- **Noise filter** — Light denoise, Remove non-speech, Boost quiet voices, or Isolate voice (strong, about 2× slower). **Leave it Off**
+  unless a recording is genuinely noisy: in testing on clear phone calls the filters did not improve accuracy and some dropped a
+  call's first words. Compare the result with the unfiltered one.
+- **Known issue:** in testing, XXL r245.4 crashed when *automatic language detection* was combined with hotwords or a filter on one
+  recording. VidSage detects the crash, fixes the language, and re-runs automatically (it tells you when this happens).
+
+---
+
 ## 🔑 API Keys
 
 VidSage requires an API key for the AI analysis step. Transcription (Whisper) is always free and local.

@@ -37,6 +37,38 @@ def _secret(name: str) -> str:
         return ""
 
 
+# ── Gemini model fallback ─────────────────────────────────────────────────────
+# Google retires Gemini models regularly (gemini-2.0-flash was shut down on 1 June 2026).  Try
+# the models below in order, skipping any that are retired (404) or overloaded (503).
+# Override with the VIDSAGE_GEMINI_MODELS environment variable (comma-separated).
+GEMINI_MODELS = [m.strip() for m in os.environ.get(
+    "VIDSAGE_GEMINI_MODELS", "gemini-3.8-flash,gemini-3.5-flash,gemini-3.5-flash-lite"
+).split(",") if m.strip()]
+_GEMINI_RETIRED: set = set()
+
+
+def _gemini_generate(client, contents, **kwargs):
+    """client.models.generate_content() with automatic model fallback.
+    404 (retired) → never try that model again this session; 503 (overloaded) → try the next one;
+    anything else (e.g. 429 rate limit) is raised so the callers' retry logic still applies."""
+    last_error = None
+    for model in GEMINI_MODELS:
+        if model in _GEMINI_RETIRED:
+            continue
+        try:
+            return client.models.generate_content(model=model, contents=contents, **kwargs)
+        except Exception as exc:
+            text = str(exc)
+            last_error = exc
+            if "404" in text or "NOT_FOUND" in text:
+                _GEMINI_RETIRED.add(model)
+                continue
+            if "503" in text or "UNAVAILABLE" in text:
+                continue
+            raise
+    raise last_error or RuntimeError("No Gemini model is available — set VIDSAGE_GEMINI_MODELS.")
+
+
 # ── OpenAI-compatible engines (OpenAI + DeepSeek Flash share one code path) ──
 DEEPSEEK_ENGINE = "DeepSeek Flash (Cheap)"
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -975,10 +1007,7 @@ TRANSCRIPT TO CORRECT:
     else:
         from google import genai as google_genai
         client = google_genai.Client(api_key=gemini_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-        )
+        response = _gemini_generate(client, prompt)
         cleaned_timestamped = response.text.strip()
 
     # Rebuild full text from cleaned timestamped version (strip timestamps)
@@ -1060,8 +1089,7 @@ TRANSCRIPT:{_sample_note}
     else:
         from google import genai as google_genai
         client = google_genai.Client(api_key=gemini_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash", contents=prompt)
+        response = _gemini_generate(client, prompt)
         raw = response.text.strip()
 
     chapters = []
@@ -1157,8 +1185,7 @@ If something is not covered in the video, say so clearly."""
             history_text += f"{role}: {msg['content']}\n\n"
 
         full_prompt = f"{system}\n\n{context}\n\n{history_text}User: {question}\nAssistant:"
-        response = client.models.generate_content(
-            model="gemini-2.0-flash", contents=full_prompt)
+        response = _gemini_generate(client, full_prompt)
         return response.text.strip()
 
 
@@ -2272,8 +2299,7 @@ def generate_pkm_note(video_name: str, video_type: str, duration: float,
         client = google_genai.Client(api_key=gemini_key)
         for attempt in range(3):
             try:
-                response = client.models.generate_content(
-                    model="gemini-2.0-flash", contents=prompt)
+                response = _gemini_generate(client, prompt)
                 raw = response.text.strip()
                 break
             except Exception as e:
@@ -2334,8 +2360,7 @@ def generate_tags(video_name: str, explanation: str,
         elif ai_engine == "Gemini" and gemini_key:
             from google import genai as google_genai
             client = google_genai.Client(api_key=gemini_key)
-            resp = client.models.generate_content(
-                model="gemini-2.0-flash", contents=prompt)
+            resp = _gemini_generate(client, prompt)
             raw = resp.text.strip()
         if raw:
             tags = [t.strip().lower().strip('"').strip("'")
@@ -2375,8 +2400,7 @@ def generate_video_title(explanation: str, full_transcript: str,
         elif ai_engine == "Gemini" and gemini_key:
             from google import genai as google_genai
             client = google_genai.Client(api_key=gemini_key)
-            resp = client.models.generate_content(
-                model="gemini-2.0-flash", contents=prompt)
+            resp = _gemini_generate(client, prompt)
             return resp.text.strip().strip('"').strip("'")
     except Exception:
         pass
@@ -2662,10 +2686,7 @@ def analyze_with_gemini(timestamped_transcript, frames, timestamps, duration, ap
     # Retry up to 3 times if rate limited
     for attempt in range(3):
         try:
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=parts,
-            )
+            response = _gemini_generate(client, parts)
             return response.text
         except Exception as e:
             if "429" in str(e) and attempt < 2:
@@ -3982,8 +4003,7 @@ def _show_results(video_name, explanation, chapters, full_transcript,
                             if ai_engine == "Gemini (Free)" and gemini_key:
                                 from google import genai as _gai
                                 _gc = _gai.Client(api_key=gemini_key)
-                                _pr = _gc.models.generate_content(
-                                    model="gemini-2.0-flash", contents=pkm_prompt)
+                                _pr = _gemini_generate(_gc, pkm_prompt)
                                 new_pkm = _pr.text.strip()
                             elif _is_oai(ai_engine) and openai_key:
                                 from openai import OpenAI as _OAI

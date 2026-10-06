@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.1 — 2026-10-06
+
+### Fixed
+- **Gemini (Free) engine was broken**: it used `gemini-2.0-flash`, which Google shut down on
+  1 June 2026 (HTTP 404). All Gemini calls now try `gemini-3.8-flash`, then `gemini-3.5-flash`, then
+  `gemini-3.5-flash-lite`, automatically skipping retired (404) or overloaded (503) models.
+  Override the list with the `VIDSAGE_GEMINI_MODELS` environment variable (comma-separated).
+  Verified against a live Gemini key, including with a retired model listed first.
+
 ## v1.3.0 — 2026-10-06
 
 ### Added

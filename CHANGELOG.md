@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.7.0 — 2026-10-07
+
+### Changed
+- **Sidebar redesign.** Each option group (AI engine, Transcription, Language, Frames, Time range, Slides, Auto-save)
+  is now a compact card whose title shows only the current choice; open it to change it (it collapses again after
+  you pick). A one-line status under the AI engine and Transcription cards shows whether the API key is ready and
+  whether anything leaves your PC.
+- **New defaults:** DeepSeek Flash for the AI engine and Local GPU (Faster-Whisper-XXL) for transcription (falls back
+  to local Whisper if XXL is not installed). **Your last choices are remembered** between sessions in
+  `Documents\VidSage\settings.json` (engines, models, language, frame settings, cleanup and auto-save). API keys,
+  names & terms, time range, slides and the "Gemini watches the video" switch are never saved. Delete the file to
+  reset.
+- **Readability.** Measured sidebar text contrast: the file uploader and buttons were about 1.5:1 (almost invisible)
+  and the lowest text 3:1. Everything is now ≥ 4.5:1 (median 14:1), with larger option text, a highlighted selected
+  option, dark input boxes and a readable file uploader and buttons.
+
+### Fixed
+- **History was very slow with many saved videos.** Every click (ticking a summary-table checkbox, scrolling) redrew
+  the full details of every saved report — with 40 videos about 800 buttons, 160 text boxes and 520 download
+  buttons, ~9.7 s per click. A report now loads only when you press **Open this report** (one at a time):
+  ~0.7 s per click with 40 videos.
+
 ## v1.6.3 — 2026-10-07
 
 ### Changed

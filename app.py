@@ -3007,46 +3007,123 @@ footer    {visibility: hidden;}
 }
 .stButton > button[kind="primary"]:hover { opacity: .88; }
 
-/* ── Sidebar ── */
+/* ── Sidebar (dark, high-contrast: every text colour is ≥ 7:1 against its background) ── */
 section[data-testid="stSidebar"] {
-    background: #16123A;
+    background: #14103A;
+    border-right: 1px solid #2B2766;
 }
-section[data-testid="stSidebar"] .stMarkdown,
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] span,
-section[data-testid="stSidebar"] div {
-    color: #C7D2FE !important;
+section[data-testid="stSidebar"] :is(h1, h2, h3, h4) { color: #FFFFFF !important; }
+section[data-testid="stSidebar"] :is(p, span, label, li, small) { color: #EEF1FF !important; }
+section[data-testid="stSidebar"] hr { border-color: #2B2766 !important; }
+/* captions / helper text: softer, but still clearly readable */
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"],
+section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] * {
+    color: #B9C2F7 !important;
+    opacity: 1 !important;
 }
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    color: #E0E7FF !important;
-}
-section[data-testid="stSidebar"] hr { border-color: #3730A3 !important; }
-section[data-testid="stSidebar"] input,
-section[data-testid="stSidebar"] select {
-    background: #2E2A5E !important;
-    color: #E0E7FF !important;
-    border-color: #4338CA !important;
-}
+section[data-testid="stSidebar"] [data-testid="stTooltipIcon"] svg { fill: #B9C2F7 !important; color: #B9C2F7 !important; }
 
-/* ── Remove default left-border on sidebar inputs/selects ── */
-section[data-testid="stSidebar"] [data-baseweb="select"] {
-    border-left: none !important;
+/* ── Cards (the collapsed option groups) ── */
+section[data-testid="stSidebar"] [data-testid="stExpander"] {
+    background: #1E1952;
+    border: 1px solid #3A3487 !important;
+    border-radius: 12px;
+    margin: 8px 0 2px;
 }
-section[data-testid="stSidebar"] [data-baseweb="select"] > div {
-    background: #2E2A5E !important;
-    border: 1px solid #4338CA !important;
+section[data-testid="stSidebar"] [data-testid="stExpander"]:hover { border-color: #6366F1 !important; }
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary { padding: 10px 12px; }
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary * {
+    color: #FFFFFF !important;
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+/* the current choice stands out in the accent colour */
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary strong { color: #A5B4FC !important; }
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary svg { fill: #A5B4FC !important; color: #A5B4FC !important; }
+section[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stExpanderDetails"] { padding: 4px 12px 12px; }
+
+/* ── Radio options: bigger text, selected one highlighted ── */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    padding: 6px 8px;
+    border-radius: 8px;
+    margin: 2px 0;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
+    background: rgba(99, 102, 241, 0.30);
+    outline: 1px solid #818CF8;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label p { font-size: 0.93rem; }
+
+/* ── Inputs ── */
+section[data-testid="stSidebar"] input,
+section[data-testid="stSidebar"] textarea {
+    background: #262065 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #5B55C9 !important;
     border-radius: 8px !important;
 }
-section[data-testid="stSidebar"] .stSelectbox > label,
-section[data-testid="stSidebar"] .stMultiSelect > label {
-    color: #C7D2FE !important;
-    font-size: 0.85rem;
-    font-weight: 500;
-    margin-bottom: 2px;
+section[data-testid="stSidebar"] input::placeholder,
+section[data-testid="stSidebar"] textarea::placeholder { color: #9AA5E8 !important; opacity: 1 !important; }
+section[data-testid="stSidebar"] [data-baseweb="select"] { border-left: none !important; }
+section[data-testid="stSidebar"] [data-baseweb="select"] > div {
+    background: #262065 !important;
+    border: 1px solid #5B55C9 !important;
+    border-radius: 8px !important;
 }
+section[data-testid="stSidebar"] [data-baseweb="select"] * { color: #FFFFFF !important; }
+section[data-testid="stSidebar"] [data-baseweb="select"] svg { fill: #B9C2F7 !important; }
+section[data-testid="stSidebar"] [data-baseweb="tag"] { background: #4F46E5 !important; }
+
+/* ── Buttons (incl. file-uploader Browse) ── */
+section[data-testid="stSidebar"] .stButton > button,
+section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
+    background: #3B36A8 !important;
+    border: 1px solid #7C83F5 !important;
+    border-radius: 8px !important;
+}
+section[data-testid="stSidebar"] button *,
+section[data-testid="stSidebar"] button p { color: #FFFFFF !important; }
+section[data-testid="stSidebar"] .stButton > button:hover { background: #4F46E5 !important; }
+
+/* ── File uploader ── */
+section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] {
+    background: #262065 !important;
+    border: 1px dashed #7C83F5 !important;
+    border-radius: 10px !important;
+}
+section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] * { color: #EEF1FF !important; }
+section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] small { color: #B9C2F7 !important; }
+section[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] button { background: #4F46E5 !important; }
+
+/* ── Sliders, toggles, checkboxes ── */
+section[data-testid="stSidebar"] [data-testid="stSlider"] *,
+section[data-testid="stSidebar"] [data-testid="stSliderThumbValue"],
+section[data-testid="stSidebar"] [data-testid="stTickBarMin"],
+section[data-testid="stSidebar"] [data-testid="stTickBarMax"] { color: #EEF1FF !important; }
+section[data-testid="stSidebar"] [data-testid="stToggle"] label p,
+section[data-testid="stSidebar"] [data-testid="stCheckbox"] label p { font-size: 0.93rem; }
+
+/* ── Alerts inside the sidebar ── */
+section[data-testid="stSidebar"] [data-testid="stAlert"] {
+    background: rgba(99, 102, 241, 0.16) !important;
+    border: 1px solid #5B55C9;
+}
+section[data-testid="stSidebar"] [data-testid="stAlert"] * { color: #EEF1FF !important; }
+
+/* input wrappers (password box with the eye button, number boxes) */
+section[data-testid="stSidebar"] [data-baseweb="input"],
+section[data-testid="stSidebar"] [data-baseweb="base-input"] {
+    background: #262065 !important;
+    border-color: #5B55C9 !important;
+    border-radius: 8px !important;
+}
+section[data-testid="stSidebar"] [data-baseweb="input"] button { background: transparent !important; border: none !important; }
+section[data-testid="stSidebar"] [data-baseweb="input"] svg { fill: #B9C2F7 !important; color: #B9C2F7 !important; }
+section[data-testid="stSidebar"] [data-testid="stNumberInputContainer"],
+section[data-testid="stSidebar"] [data-testid="stNumberInputContainer"] * { background: #262065; }
+/* slider value labels (they used the dark-on-dark accent colour) */
+section[data-testid="stSidebar"] [data-baseweb="slider"] * { color: #D5DBFF !important; }
+
 /* Remove the vertical line artifact on radio/selectbox */
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div > div {
     border-left: none !important;
@@ -3088,425 +3165,441 @@ def _sidebar_section(title: str) -> None:
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
+# Every setting lives in a compact "card": the card title shows what is currently selected and you
+# open it to change it.  Choices are remembered between sessions (settings.json) — never API keys.
+
+SETTINGS_FILE = Path.home() / "Documents" / "VidSage" / "settings.json"
+# Widget keys that are remembered.  Deliberately NOT remembered: API keys, names & terms, time range,
+# slides, and the "let Gemini watch the video" switch (it uploads the whole video, so it stays opt-in).
+PREF_KEYS = [
+    "w_ai_engine", "w_stt", "w_whisper_model", "w_xxl_model", "w_xxl_filter",
+    "w_lang_mode", "w_lang_single", "w_lang_multi", "output_language_select",
+    "w_frame_mode", "w_auto_frames", "w_max_frames", "w_interval_fixed", "w_scene_sens",
+    "w_interval_dense", "w_dedup", "w_minwords", "w_cleanup", "w_autosave",
+]
+
+
+def _load_prefs() -> dict:
+    try:
+        data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        return {k: v for k, v in data.items() if k in PREF_KEYS}
+    except Exception:
+        return {}
+
+
+def _save_prefs() -> None:
+    """Write the current choices if they changed (keys of widgets that are hidden right now keep their old value)."""
+    try:
+        merged = dict(st.session_state.get("_prefs_saved", {}))
+        for k in PREF_KEYS:
+            if k in st.session_state:
+                merged[k] = st.session_state[k]
+        if merged != st.session_state.get("_prefs_saved"):
+            SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            SETTINGS_FILE.write_text(json.dumps(merged, ensure_ascii=False, indent=1), encoding="utf-8")
+            st.session_state["_prefs_saved"] = merged
+    except Exception:
+        pass                                    # a read-only disk must never break the app
+
+
+def _ensure(key: str, options, default) -> None:
+    """Make sure a widget's value is a valid choice (falls back to the remembered one, then the default)."""
+    if st.session_state.get(key) not in options:
+        remembered = st.session_state.get("_prefs_saved", {}).get(key)
+        st.session_state[key] = remembered if remembered in options else default
+
+
+def _card(icon: str, title: str, current: str):
+    """A collapsed card whose header shows the current choice — open it to change it."""
+    return st.expander(f"{icon} {title}  ·  **{current}**", expanded=False)
+
+
+AI_OPTIONS = ["Gemini (Free)", "Claude (Paid)", "OpenAI (Paid)", DEEPSEEK_ENGINE]
+AI_SHORT = {"Gemini (Free)": "Gemini (free)", "Claude (Paid)": "Claude", "OpenAI (Paid)": "OpenAI GPT-4o",
+            DEEPSEEK_ENGINE: "DeepSeek Flash"}
+STT_OPTIONS = ["💻 Local Whisper", "🚀 Local GPU (Faster-Whisper-XXL)", "⚡ Groq Cloud", "☁️ OpenAI Whisper"]
+STT_SHORT = {"💻 Local Whisper": "Local Whisper (CPU)", "🚀 Local GPU (Faster-Whisper-XXL)": "Local GPU",
+             "⚡ Groq Cloud": "Groq cloud", "☁️ OpenAI Whisper": "OpenAI cloud"}
+FRAME_MODES = ["📅 Fixed Interval", "🧠 Smart Scene Detection", "🎙️ Speech-Aligned", "🔍 Dense + Dedup"]
+
 with st.sidebar:
     st.markdown("### 🎬 VidSage")
     st.caption("AI-powered video explainer")
 
-    gemini_watch_video = False
-    # ── AI Engine ──
-    _sidebar_section("🤖 AI Engine")
-    ai_engine = st.radio(
-        "Choose analysis engine:",
-        options=["Gemini (Free)", "Claude (Paid)", "OpenAI (Paid)", DEEPSEEK_ENGINE],
-        index=1,
-        captions=[
-            "Google Gemini — free tier, 1,500 req/day",
-            "Anthropic Claude — ~$0.10–0.30/video",
-            "OpenAI GPT-4o — ~$0.07–0.20/video",
-            "DeepSeek V4.1 Flash — ~$0.01–0.03/video, reads images",
-        ],
-    )
+    # ── remembered settings + first-run defaults (DeepSeek + local GPU) ──
+    if "_prefs_loaded" not in st.session_state:
+        _saved = _load_prefs()
+        for _k, _v in _saved.items():
+            st.session_state.setdefault(_k, _v)
+        st.session_state["_prefs_saved"] = dict(_saved)
+        st.session_state["_prefs_loaded"] = True
+    if "w_stt" not in st.session_state:
+        st.session_state["w_stt"] = (STT_OPTIONS[1] if find_xxl(_secret("FW_XXL_PATH")) else STT_OPTIONS[0])
+    _ensure("w_ai_engine", AI_OPTIONS, DEEPSEEK_ENGINE)
+    _ensure("w_stt", STT_OPTIONS, STT_OPTIONS[0])
 
-    if ai_engine == "Gemini (Free)":
-        default_gemini = _secret("GEMINI_API_KEY")
-        gemini_key = st.text_input("Gemini API Key", value=default_gemini, type="password",
-                                   help="Get free key at aistudio.google.com")
-        gemini_watch_video = st.checkbox(
-            "🎥 Let Gemini watch the whole video (sees motion, hears audio)",
-            value=False,
-            help="Uploads the VIDEO to Google (deleted right after; public YouTube links are passed "
-                 "directly). Better for demos and anything where motion matters. Costs more tokens "
-                 "(~100 per second of video). On the free tier Google may use your data to improve "
-                 "its products — don't use it for private videos.")
-        if gemini_watch_video:
-            st.caption("⚠️ The full video is sent to Google. Falls back to frames if it fails.")
-        claude_key = ""
-        openai_key = ""
-    elif ai_engine == "Claude (Paid)":
-        default_claude = _secret("ANTHROPIC_API_KEY")
-        claude_key = st.text_input("Anthropic API Key", value=default_claude, type="password",
-                                   help="Loaded from .streamlit/secrets.toml")
-        gemini_key = ""
-        openai_key = ""
-    elif ai_engine == DEEPSEEK_ENGINE:
-        default_deepseek = _secret("DEEPSEEK_API_KEY")
-        # Shares the OpenAI-compatible code path, so the key travels in `openai_key`.
-        openai_key = st.text_input("DeepSeek API Key", value=default_deepseek, type="password",
-                                   help="Get key at platform.deepseek.com")
-        claude_key = ""
-        gemini_key = ""
-    else:  # OpenAI
-        default_openai = _secret("OPENAI_API_KEY")
-        openai_key = st.text_input("OpenAI API Key", value=default_openai, type="password",
-                                   help="Get key at platform.openai.com")
-        claude_key = ""
-        gemini_key = ""
+    gemini_watch_video = False
+
+    # ── AI engine ──────────────────────────────────────────────────────────────
+    with _card("🤖", "AI engine", AI_SHORT[st.session_state["w_ai_engine"]]):
+        ai_engine = st.radio(
+            "AI engine", AI_OPTIONS, key="w_ai_engine", label_visibility="collapsed",
+            captions=[
+                "Free tier · 1,500 requests/day",
+                "Best quality · ~$0.10–0.30 per video",
+                "GPT-4o · ~$0.07–0.20 per video",
+                "Cheapest · ~$0.01–0.03 per video · reads images",
+            ],
+        )
+
+        if ai_engine == "Gemini (Free)":
+            gemini_key = st.text_input("Gemini API key", value=_secret("GEMINI_API_KEY"), type="password",
+                                       help="Free key at aistudio.google.com")
+            gemini_watch_video = st.checkbox(
+                "🎥 Let Gemini watch the whole video (sees motion, hears audio)",
+                value=False,
+                help="Uploads the VIDEO to Google (deleted right after; public YouTube links are passed "
+                     "directly). Better for demos and anything where motion matters. Costs more tokens "
+                     "(~100 per second of video). On the free tier Google may use your data to improve "
+                     "its products — don't use it for private videos.")
+            if gemini_watch_video:
+                st.caption("⚠️ The full video is sent to Google. Falls back to frames if it fails.")
+            claude_key = ""
+            openai_key = ""
+        elif ai_engine == "Claude (Paid)":
+            claude_key = st.text_input("Anthropic API key", value=_secret("ANTHROPIC_API_KEY"), type="password",
+                                       help="Loaded from .streamlit/secrets.toml")
+            gemini_key = ""
+            openai_key = ""
+        elif ai_engine == DEEPSEEK_ENGINE:
+            # Shares the OpenAI-compatible code path, so the key travels in `openai_key`.
+            openai_key = st.text_input("DeepSeek API key", value=_secret("DEEPSEEK_API_KEY"), type="password",
+                                       help="Get a key at platform.deepseek.com")
+            claude_key = ""
+            gemini_key = ""
+        else:  # OpenAI
+            openai_key = st.text_input("OpenAI API key", value=_secret("OPENAI_API_KEY"), type="password",
+                                       help="Get a key at platform.openai.com")
+            claude_key = ""
+            gemini_key = ""
 
     active_key = (
         gemini_key if ai_engine == "Gemini (Free)"
         else openai_key if _is_oai(ai_engine)
         else claude_key
     )
+    st.caption("✅ API key ready" if active_key else "⚠️ API key needed — open **AI engine** above to add it")
 
-    _sidebar_section("🎙️ Transcription")
-    _stt_choice = st.radio(
-        "Transcription engine:",
-        options=["💻 Local Whisper", "🚀 Local GPU (Faster-Whisper-XXL)", "⚡ Groq Cloud", "☁️ OpenAI Whisper"],
-        index=0,
-        captions=[
-            "Free & private — runs on your PC's processor (slow)",
-            "Free & private — uses your NVIDIA GPU via your Faster-Whisper-XXL folder",
-            "Very fast, ~$0.11 per hour of audio, large-v3 model",
-            "Fast, ~$0.36 per hour of audio",
-        ],
-        help="Only used when the video has no YouTube captions. Cloud options upload the "
-             "AUDIO track (never the video) to the provider.",
-    )
-    stt_engine = {"💻 Local Whisper": "local", "🚀 Local GPU (Faster-Whisper-XXL)": "xxl",
-                  "⚡ Groq Cloud": "groq", "☁️ OpenAI Whisper": "openai"}[_stt_choice]
-    groq_key = ""
-    openai_stt_key = ""
-    xxl_exe = None
-    xxl_model = "large-v2"
-    xxl_filter = "Off"
-    names_terms = ""
+    # ── Transcription ──────────────────────────────────────────────────────────
+    _stt_now = st.session_state["w_stt"]
+    _stt_sub = ""
+    if _stt_now == STT_OPTIONS[0]:
+        _ensure("w_whisper_model", ["base", "small", "medium", "large"], "medium")
+        _stt_sub = f" · {st.session_state['w_whisper_model']}"
+    elif _stt_now == STT_OPTIONS[1]:
+        _stt_sub = f" · {st.session_state.get('w_xxl_model', 'large-v2')}"
+    with _card("🎙️", "Transcription", STT_SHORT[_stt_now] + _stt_sub):
+        _stt_choice = st.radio(
+            "Transcription engine", STT_OPTIONS, key="w_stt", label_visibility="collapsed",
+            captions=[
+                "Free & private · runs on your PC's processor (slow)",
+                "Free & private · uses your NVIDIA GPU via your Faster-Whisper-XXL folder",
+                "Very fast · ~$0.11 per hour of audio · large-v3",
+                "Fast · ~$0.36 per hour of audio",
+            ],
+            help="Only used when the video has no YouTube captions. Cloud options upload the "
+                 "AUDIO track (never the video) to the provider.",
+        )
+        stt_engine = {"💻 Local Whisper": "local", "🚀 Local GPU (Faster-Whisper-XXL)": "xxl",
+                      "⚡ Groq Cloud": "groq", "☁️ OpenAI Whisper": "openai"}[_stt_choice]
+        groq_key = ""
+        openai_stt_key = ""
+        xxl_exe = None
+        xxl_model = "large-v2"
+        xxl_filter = "Off"
+        if stt_engine == "xxl":
+            _xxl_found = find_xxl(_secret("FW_XXL_PATH"))
+            _xxl_text = st.text_input(
+                "Faster-Whisper-XXL folder",
+                value=str(_xxl_found.parent) if _xxl_found else "",
+                help="The folder that contains faster-whisper-xxl.exe. Saved for next time if you add "
+                     'FW_XXL_PATH = "..." to .streamlit/secrets.toml.')
+            xxl_exe = find_xxl(_xxl_text, strict=True)
+            if xxl_exe is None:
+                st.error("Couldn't find faster-whisper-xxl.exe in that folder. Download it from "
+                         "github.com/Purfview/whisper-standalone-win and paste its folder here.")
+            else:
+                _xxl_models = xxl_installed_models(xxl_exe) or ["large-v2"]
+                _ensure("w_xxl_model", _xxl_models, _xxl_models[0])
+                xxl_model = st.selectbox(
+                    "Model", _xxl_models, key="w_xxl_model",
+                    help="Models already inside your XXL folder. large-v2 was the steadier choice for Malay and "
+                         "Chinese–English calls in testing; large-v3 can mis-detect Malay as English.")
+                _ensure("w_xxl_filter", list(NOISE_FILTERS), "Off")
+                xxl_filter = st.selectbox(
+                    "Noise filter (optional)", list(NOISE_FILTERS), key="w_xxl_filter",
+                    help="Cleans the audio before transcribing. In testing on clear phone calls these filters did "
+                         "NOT improve accuracy and sometimes made it worse (they can drop a call's first words), "
+                         "so leave it Off unless the recording is genuinely noisy and compare the results. "
+                         "'Isolate voice' stayed closest to the unfiltered text but takes about twice as long.")
+        elif stt_engine == "groq":
+            groq_key = st.text_input("Groq API key",
+                                     value=_secret("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", ""),
+                                     type="password", help="Free key at console.groq.com")
+        elif stt_engine == "openai":
+            openai_stt_key = st.text_input(
+                "OpenAI API key (for transcription)",
+                value=_secret("OPENAI_API_KEY") or (openai_key if ai_engine == "OpenAI (Paid)" else ""),
+                type="password", help="platform.openai.com")
+
+        if stt_engine == "local":
+            whisper_model = st.radio(
+                "Accuracy vs. speed", ["base", "small", "medium", "large"], key="w_whisper_model",
+                captions=["Fastest, less accurate", "Good balance", "Recommended ✓", "Most accurate, slow"],
+            )
+        else:
+            whisper_model = stt_engine      # XXL / cloud: the model is fixed by the choice above
+
     if stt_engine == "xxl":
-        _xxl_found = find_xxl(_secret("FW_XXL_PATH"))
-        _xxl_text = st.text_input(
-            "Faster-Whisper-XXL folder",
-            value=str(_xxl_found.parent) if _xxl_found else "",
-            help="The folder that contains faster-whisper-xxl.exe. Saved for next time if you add "
-                 'FW_XXL_PATH = "..." to .streamlit/secrets.toml.')
-        xxl_exe = find_xxl(_xxl_text, strict=True)
-        if xxl_exe is None:
-            st.error("Couldn't find faster-whisper-xxl.exe in that folder. Download it from "
-                     "github.com/Purfview/whisper-standalone-win and paste its folder here.")
-        else:
-            _xxl_models = xxl_installed_models(xxl_exe) or ["large-v2"]
-            xxl_model = st.selectbox(
-                "Model", _xxl_models, index=0,
-                help="Models already inside your XXL folder. large-v2 was the steadier choice for Malay and "
-                     "Chinese–English calls in testing; large-v3 can mis-detect Malay as English.")
-            xxl_filter = st.selectbox(
-                "Noise filter (optional)", list(NOISE_FILTERS), index=0,
-                help="Cleans the audio before transcribing. In testing on clear phone calls these filters did "
-                     "NOT improve accuracy and sometimes made it worse (they can drop a call's first words), "
-                     "so leave it Off unless the recording is genuinely noisy and compare the results. "
-                     "'Isolate voice' stayed closest to the unfiltered text but takes about twice as long.")
-            st.caption("🔒 Runs on this PC — nothing is uploaded. Reads your XXL folder; never changes it.")
+        st.caption("🔒 Runs on this PC · nothing uploaded" if xxl_exe else "⚠️ Faster-Whisper-XXL not found — open **Transcription**")
+    elif stt_engine == "local":
+        st.caption("🔒 Runs on this PC · nothing uploaded")
     elif stt_engine == "groq":
-        groq_key = st.text_input("Groq API Key", value=_secret("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", ""),
-                                 type="password", help="Free key at console.groq.com")
-        st.caption("☁️ Audio (not video) is sent to Groq for transcription.")
-    elif stt_engine == "openai":
-        openai_stt_key = st.text_input(
-            "OpenAI API Key (for transcription)",
-            value=_secret("OPENAI_API_KEY") or (openai_key if ai_engine == "OpenAI (Paid)" else ""),
-            type="password", help="platform.openai.com")
-        st.caption("☁️ Audio (not video) is sent to OpenAI for transcription.")
-
-    if stt_engine == "local":
-        whisper_model = st.radio(
-            "Choose accuracy vs. speed:",
-            options=["base", "small", "medium", "large"],
-            index=2,
-            captions=["Fastest, less accurate", "Good balance", "Recommended ✓", "Most accurate, slow"],
-        )
+        st.caption("☁️ Audio (not video) goes to Groq" + ("" if groq_key else " · ⚠️ key needed"))
     else:
-        whisper_model = stt_engine      # XXL / cloud: the model is fixed by the choice above
-    audio_lang_mode = st.radio(
-        "Audio language mode",
-        ["Single language", "Multilingual"],
-        horizontal=True,
-        help="Use **Multilingual** when speakers switch between languages in the same video.",
-    )
+        st.caption("☁️ Audio (not video) goes to OpenAI" + ("" if openai_stt_key else " · ⚠️ key needed"))
 
-    if audio_lang_mode == "Single language":
-        _lang_display = st.selectbox(
-            "Audio language",
-            options=list(WHISPER_LANGUAGES.keys()),
-            index=0,  # Auto-detect — safest default; user picks language explicitly if needed
-            help="**Auto-detect** is recommended unless Whisper gets the language wrong. "
-                 "Forcing the wrong language (e.g. 'English' on a Chinese video) will produce "
-                 "garbled output. Type to search for your language.",
+    # ── Language ───────────────────────────────────────────────────────────────
+    _ensure("w_lang_mode", ["Single language", "Multilingual"], "Single language")
+    _ensure("w_lang_single", list(WHISPER_LANGUAGES.keys()), "Auto-detect")
+    _ensure("output_language_select", ["Auto (match video)"] + list(OUTPUT_LANGUAGES.keys()), "Auto (match video)")
+    if "w_lang_multi" not in st.session_state:
+        st.session_state["w_lang_multi"] = ["English", "Malay"]
+    _lang_now = ("Multilingual" if st.session_state["w_lang_mode"] == "Multilingual"
+                 else st.session_state["w_lang_single"])
+    _out_now = st.session_state["output_language_select"]
+    with _card("🌐", "Language", f"{_lang_now} → {'same as video' if _out_now.startswith('Auto') else _out_now}"):
+        audio_lang_mode = st.radio(
+            "Audio language mode", ["Single language", "Multilingual"], key="w_lang_mode", horizontal=True,
+            help="Use **Multilingual** when speakers switch between languages in the same video.",
         )
-        whisper_lang_code, whisper_initial_prompt = WHISPER_LANGUAGES[_lang_display]
-        whisper_language_display = _lang_display
-    else:
-        _multi_langs = st.multiselect(
-            "Languages spoken in this video",
-            options=MULTILINGUAL_BASE_OPTIONS,
-            default=["English", "Malay"],
-            help="Which languages appear in the video (used as a label). Whisper detects the spoken "
-                 "language by itself — no instruction is sent to it, because hints made it hallucinate. "
-                 "Add key names in the box below if some are being misspelled.",
-        )
-        if _multi_langs:
-            _lang_list = ", ".join(_multi_langs)
-            whisper_lang_code    = None   # let Whisper auto-detect per segment
-            whisper_initial_prompt = ""   # no hint: hints caused hallucinations (see note above)
-            whisper_language_display = f"Multilingual ({_lang_list})"
+        if audio_lang_mode == "Single language":
+            _lang_display = st.selectbox(
+                "Audio language", options=list(WHISPER_LANGUAGES.keys()), key="w_lang_single",
+                help="**Auto-detect** is recommended unless Whisper gets the language wrong. "
+                     "Forcing the wrong language (e.g. 'English' on a Chinese video) will produce "
+                     "garbled output. Type to search for your language.",
+            )
+            whisper_lang_code, whisper_initial_prompt = WHISPER_LANGUAGES[_lang_display]
+            whisper_language_display = _lang_display
         else:
-            whisper_lang_code      = None
-            whisper_initial_prompt = ""
-            whisper_language_display = "Auto-detect"
+            _multi_langs = st.multiselect(
+                "Languages spoken in this video", options=MULTILINGUAL_BASE_OPTIONS, key="w_lang_multi",
+                help="Which languages appear in the video (used as a label). Whisper detects the spoken "
+                     "language by itself — no instruction is sent to it, because hints made it hallucinate. "
+                     "Add key names in the box below if some are being misspelled.",
+            )
+            if _multi_langs:
+                _lang_list = ", ".join(_multi_langs)
+                whisper_lang_code = None   # let Whisper auto-detect per segment
+                whisper_initial_prompt = ""   # no hint: hints caused hallucinations
+                whisper_language_display = f"Multilingual ({_lang_list})"
+            else:
+                whisper_lang_code = None
+                whisper_initial_prompt = ""
+                whisper_language_display = "Auto-detect"
 
-    _terms = st.text_input(
-        "Names & terms to spell correctly (optional)",
-        placeholder="e.g. Rainz, Gudang, Puan Noor",
-        help="A short comma-separated list. It nudges Whisper towards these spellings (sent as hotwords "
-             "with Faster-Whisper-XXL, which pushes harder — only list words that really occur). "
-             "(Keep it to words and names — full sentences or instructions can make Whisper hallucinate.)",
-    ).strip()
-    names_terms = _terms
-    if _terms and stt_engine != "xxl":      # Faster-Whisper-XXL gets them as hotwords instead
-        whisper_initial_prompt = f"{whisper_initial_prompt} {_terms}".strip()
+        _terms = st.text_input(
+            "Names & terms to spell correctly (optional)",
+            placeholder="e.g. Rainz, Gudang, Puan Noor",
+            help="A short comma-separated list. It nudges Whisper towards these spellings (sent as hotwords "
+                 "with Faster-Whisper-XXL, which pushes harder — only list words that really occur). "
+                 "(Keep it to words and names — full sentences or instructions can make Whisper hallucinate.)",
+            key="w_terms",
+        ).strip()
+        names_terms = _terms
+        if _terms and stt_engine != "xxl":      # Faster-Whisper-XXL gets them as hotwords instead
+            whisper_initial_prompt = f"{whisper_initial_prompt} {_terms}".strip()
 
-    _AUTO_LANG = "Auto (match video)"
-    _out_lang_options = [_AUTO_LANG] + list(OUTPUT_LANGUAGES.keys())
-    output_language = st.selectbox(
-        "Output language",
-        options=_out_lang_options,
-        index=0,
-        key="output_language_select",
-        help="**Auto (match video):** AI explanation is written in whatever language "
-             "Whisper detects in the audio. Select a specific language to override.",
-    )
-    if output_language == _AUTO_LANG:
-        _last_detected = st.session_state.get("last_detected_output_language", "")
-        if _last_detected:
-            st.caption(f"🌐 Last detected: **{_last_detected}** — will match video language")
-        else:
-            st.caption("🌐 Language will be detected automatically from the video audio")
-    else:
-        st.caption(f"🌐 AI output will be written in **{output_language}**")
+        _AUTO_LANG = "Auto (match video)"
+        output_language = st.selectbox(
+            "AI writes in", options=[_AUTO_LANG] + list(OUTPUT_LANGUAGES.keys()), key="output_language_select",
+            help="**Auto (match video):** the AI explanation is written in whatever language "
+                 "Whisper detects in the audio. Select a specific language to override.",
+        )
+        if output_language == _AUTO_LANG:
+            _last_detected = st.session_state.get("last_detected_output_language", "")
+            st.caption(f"🌐 Last detected: **{_last_detected}**" if _last_detected
+                       else "🌐 Detected automatically from the audio")
     # Store in session state so _show_results can read it for re-analysis and PKM generation
     st.session_state["output_language"] = output_language
 
-    _sidebar_section("🖼️ Frame Capture")
-    frame_mode = st.radio(
-        "Capture mode",
-        options=["📅 Fixed Interval", "🧠 Smart Scene Detection", "🎙️ Speech-Aligned", "🔍 Dense + Dedup"],
-        index=3,
-        captions=[
-            "One frame every N seconds",
-            "Frame on visual content changes",
-            "Frames at high-density speech moments",
-            "Dense sample → pHash dedup ✨ Best for meetings",
-        ],
-    )
-    auto_frames = st.toggle(
-        "Auto-recommend frame count",
-        value=True,
-        help=(
-            "VidSage calculates the ideal number of frames based on video length, "
-            "capture mode, and AI engine. Turn off to set an exact number manually."
-        ),
-    )
-    if auto_frames:
-        max_frames = None   # resolved later once duration is known
-        st.caption(
-            "📐 **Formula:** 1 frame per 2–3 min of video · min 8 · "
-            "cap 40 (Claude) / 80 (Gemini) · dedup applied"
+    # ── Frame capture ──────────────────────────────────────────────────────────
+    _ensure("w_frame_mode", FRAME_MODES, FRAME_MODES[3])
+    st.session_state.setdefault("w_auto_frames", True)
+    _fr_now = st.session_state["w_frame_mode"]
+    _fr_count = "auto count" if st.session_state["w_auto_frames"] else f"{st.session_state.get('w_max_frames', 15)} frames"
+    with _card("🖼️", "Frames", f"{_fr_now.split(' ', 1)[1]} · {_fr_count}"):
+        frame_mode = st.radio(
+            "Capture mode", FRAME_MODES, key="w_frame_mode", label_visibility="collapsed",
+            captions=[
+                "One frame every N seconds",
+                "Frame when the picture changes",
+                "Frames at dense speech moments",
+                "Dense sample → drops near-duplicates · best for meetings",
+            ],
         )
-        # Live preview — if a file is already uploaded, show the recommendation now
-        _preview_file = (
-            st.session_state.get("uploaded_preview_path")
-            or st.session_state.get("yt_result", {}).get("duration")
+        auto_frames = st.toggle(
+            "Auto-recommend frame count", key="w_auto_frames",
+            help=("VidSage calculates the ideal number of frames based on video length, "
+                  "capture mode, and AI engine. Turn off to set an exact number manually."),
         )
-        _preview_rows = [
-            ("5 min video",   5 * 60),
-            ("30 min video",  30 * 60),
-            ("1 hr video",    60 * 60),
-            ("2 hr video",    120 * 60),
-        ]
-        with st.expander("📊 See example recommendations", expanded=False):
-            _ex_data = {
-                "Video Length": [],
-                "Fixed Interval": [],
-                "Scene Detection": [],
-                "Speech-Aligned": [],
-                "Dense + Dedup": [],
-            }
-            for label, secs in _preview_rows:
-                _ex_data["Video Length"].append(label)
-                _ex_data["Fixed Interval"].append(
-                    recommended_frames(secs, "📅 Fixed Interval", ai_engine))
-                _ex_data["Scene Detection"].append(
-                    recommended_frames(secs, "🧠 Smart Scene Detection", ai_engine))
-                _ex_data["Speech-Aligned"].append(
-                    recommended_frames(secs, "🎙️ Speech-Aligned", ai_engine))
-                _ex_data["Dense + Dedup"].append(
-                    recommended_frames(secs, "🔍 Dense + Dedup", ai_engine))
-            st.dataframe(pd.DataFrame(_ex_data), hide_index=True)
-    else:
-        max_frames = st.number_input(
-            "Frames to send to AI",
-            min_value=1,
-            max_value=500,
-            value=15,
-            step=5,
-            help=(
-                "No hard cap — set as many as you need. "
-                "Practical sweet spot: 10–20 for Claude, 20–60 for Gemini. "
-                "Very high counts increase cost and processing time."
-            ),
+        if auto_frames:
+            max_frames = None   # resolved later once duration is known
+            st.caption("📐 About 1 frame per 2–3 min · min 8 · cap 40 (Claude / OpenAI / DeepSeek) or 80 (Gemini)")
+            if st.toggle("📊 Show example recommendations", value=False, key="w_show_examples"):
+                _preview_rows = [("5 min video", 5 * 60), ("30 min video", 30 * 60),
+                                 ("1 hr video", 60 * 60), ("2 hr video", 120 * 60)]
+                _ex_data = {"Video length": [], "Fixed": [], "Scene": [], "Speech": [], "Dense": []}
+                for label, secs in _preview_rows:
+                    _ex_data["Video length"].append(label)
+                    _ex_data["Fixed"].append(recommended_frames(secs, "📅 Fixed Interval", ai_engine))
+                    _ex_data["Scene"].append(recommended_frames(secs, "🧠 Smart Scene Detection", ai_engine))
+                    _ex_data["Speech"].append(recommended_frames(secs, "🎙️ Speech-Aligned", ai_engine))
+                    _ex_data["Dense"].append(recommended_frames(secs, "🔍 Dense + Dedup", ai_engine))
+                st.dataframe(pd.DataFrame(_ex_data), hide_index=True)
+        else:
+            st.session_state.setdefault("w_max_frames", 15)
+            max_frames = st.number_input(
+                "Frames to send to AI", min_value=1, max_value=500, step=5, key="w_max_frames",
+                help=("No hard cap — set as many as you need. "
+                      "Practical sweet spot: 10–20 for Claude, 20–60 for Gemini. "
+                      "Very high counts increase cost and processing time."),
+            )
+
+        if frame_mode == "📅 Fixed Interval":
+            st.session_state.setdefault("w_interval_fixed", 45)
+            frame_interval = st.slider("Capture a frame every N seconds", min_value=15, max_value=120,
+                                       step=15, key="w_interval_fixed")
+            scene_threshold = 0.4
+            min_words_seg = 8
+
+        elif frame_mode == "🧠 Smart Scene Detection":
+            frame_interval = 45
+            _ensure("w_scene_sens", [0.2, 0.3, 0.4, 0.5, 0.6, 0.7], 0.4)
+            scene_threshold = st.select_slider(
+                "Scene sensitivity", options=[0.2, 0.3, 0.4, 0.5, 0.6, 0.7], key="w_scene_sens",
+                format_func=lambda x: {0.2: "Very sensitive (most frames)", 0.3: "High", 0.4: "Medium ✓",
+                                       0.5: "Low", 0.6: "High threshold", 0.7: "Only big changes"}[x],
+                help="Lower = captures more scene changes. Medium works well for lectures and screen recordings.",
+            )
+            min_words_seg = 8
+
+        elif frame_mode == "🔍 Dense + Dedup":
+            st.session_state.setdefault("w_interval_dense", 2)
+            frame_interval = st.slider(
+                "Sample interval (seconds)", min_value=1, max_value=5, step=1, key="w_interval_dense",
+                help=("A frame is read every N seconds before deduplication. "
+                      "2s catches virtually all slide changes in meetings and lectures. "
+                      "Increase to 3–4s for very long videos (2 hr+) to save processing time."),
+            )
+            _ensure("w_dedup", [0.80, 0.85, 0.88, 0.90, 0.92], 0.88)
+            scene_threshold = st.select_slider(
+                "Duplicate removal", options=[0.80, 0.85, 0.88, 0.90, 0.92], key="w_dedup",
+                format_func=lambda x: {0.80: "Very aggressive — minimal frames", 0.85: "Aggressive",
+                                       0.88: "Balanced ✓", 0.90: "Moderate", 0.92: "Light — keep more frames"}[x],
+                help=("Lower = more frames are treated as duplicates and dropped. "
+                      "0.88 works well for most Zoom, lecture, and screen recordings."),
+            )
+            min_words_seg = 8
+
+        else:  # Speech-Aligned
+            frame_interval = 45
+            scene_threshold = 0.4
+            st.session_state.setdefault("w_minwords", 8)
+            min_words_seg = st.slider(
+                "Min words per speech segment", min_value=3, max_value=25, key="w_minwords",
+                help=("Only capture a frame during segments where the speaker says at least "
+                      "this many words. Higher = fewer but more content-rich frames. "
+                      "Recommended: 8 for lectures, 5 for fast-paced training."),
+            )
+
+    # ── Time range ─────────────────────────────────────────────────────────────
+    _t0 = (st.session_state.get("range_start_txt") or "").strip()
+    _t1 = (st.session_state.get("range_end_txt") or "").strip()
+    with _card("✂️", "Time range", f"{_t0 or 'start'} → {_t1 or 'end'}" if (_t0 or _t1) else "whole video"):
+        st.caption("Analyse only part of a long video. Leave blank for the whole video. "
+                   "Accepts SS, MM:SS or HH:MM:SS.")
+        _rc1, _rc2 = st.columns(2)
+        with _rc1:
+            st.text_input("Start", key="range_start_txt", placeholder="e.g. 12:30")
+        with _rc2:
+            st.text_input("End", key="range_end_txt", placeholder="e.g. 18:00")
+
+    # ── Slides ─────────────────────────────────────────────────────────────────
+    _n_prev_slides = len(st.session_state.get("slide_images") or [])
+    with _card("📎", "Slides", f"{_n_prev_slides} slide(s)" if _n_prev_slides else "none"):
+        st.caption("Upload the presentation used in the video. The AI reads the slides alongside the "
+                   "frames and transcript for a more complete analysis.")
+        uploaded_slides = st.file_uploader(
+            "Slides file", type=["pdf", "pptx", "png", "jpg", "jpeg", "webp"], accept_multiple_files=True,
+            help="PDF or PPTX: all pages/slides are extracted automatically. "
+                 "Images: upload one per slide or all at once.",
+            label_visibility="collapsed",
         )
-
-    if frame_mode == "📅 Fixed Interval":
-        frame_interval  = st.slider("Capture a frame every N seconds",
-                                    min_value=15, max_value=120, value=45, step=15)
-        scene_threshold = 0.4
-        min_words_seg   = 8
-
-    elif frame_mode == "🧠 Smart Scene Detection":
-        frame_interval  = 45
-        scene_threshold = st.select_slider(
-            "Scene sensitivity",
-            options=[0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
-            value=0.4,
-            format_func=lambda x: {
-                0.2: "Very sensitive (most frames)",
-                0.3: "High",
-                0.4: "Medium ✓",
-                0.5: "Low",
-                0.6: "High threshold",
-                0.7: "Only big changes",
-            }[x],
-            help="Lower = captures more scene changes. Medium works well for lectures and screen recordings.",
-        )
-        min_words_seg = 8
-
-    elif frame_mode == "🔍 Dense + Dedup":
-        frame_interval = st.slider(
-            "Sample interval (seconds)",
-            min_value=1, max_value=5, value=2, step=1,
-            help=(
-                "A frame is read every N seconds before deduplication. "
-                "2s catches virtually all slide changes in meetings and lectures. "
-                "Increase to 3–4s for very long videos (2 hr+) to save processing time."
-            ),
-        )
-        scene_threshold = st.select_slider(
-            "Dedup aggressiveness",
-            options=[0.80, 0.85, 0.88, 0.90, 0.92],
-            value=0.88,
-            format_func=lambda x: {
-                0.80: "Very aggressive — minimal frames",
-                0.85: "Aggressive",
-                0.88: "Balanced ✓",
-                0.90: "Moderate",
-                0.92: "Light — keep more frames",
-            }[x],
-            help=(
-                "Lower = more frames are treated as duplicates and dropped. "
-                "0.88 works well for most Zoom, lecture, and screen recordings."
-            ),
-        )
-        min_words_seg = 8
-        st.caption("💡 Samples densely then removes near-identical frames — best for Zoom, lectures, training & screen recordings.")
-
-    else:  # Speech-Aligned
-        frame_interval  = 45
-        scene_threshold = 0.4
-        min_words_seg   = st.slider(
-            "Min words per speech segment",
-            min_value=3, max_value=25, value=8,
-            help=(
-                "Only capture a frame during segments where the speaker says at least "
-                "this many words. Higher = fewer but more content-rich frames. "
-                "Recommended: 8 for lectures, 5 for fast-paced training."
-            ),
-        )
-        st.caption(
-            "💡 Frames are captured 0.5 s into each qualifying speech burst, "
-            "scored by words-per-second, and deduplicated automatically. "
-            "Extra frames are added at silence gaps (topic/slide shifts)."
-        )
-
-    _sidebar_section("✂️ Time Range (Optional)")
-    st.caption("Analyse only part of a long video. Leave blank for the whole video. "
-               "Accepts SS, MM:SS or HH:MM:SS.")
-    _rc1, _rc2 = st.columns(2)
-    with _rc1:
-        st.text_input("Start", key="range_start_txt", placeholder="e.g. 12:30")
-    with _rc2:
-        st.text_input("End", key="range_end_txt", placeholder="e.g. 18:00")
-
-    _sidebar_section("📎 Upload Slides (Optional)")
-    st.caption(
-        "Upload the presentation slides used in the video. The AI will read "
-        "the full slide content alongside the video frames and transcript, "
-        "giving a much more complete and accurate analysis."
-    )
-    uploaded_slides = st.file_uploader(
-        "Slides file",
-        type=["pdf", "pptx", "png", "jpg", "jpeg", "webp"],
-        accept_multiple_files=True,
-        help="PDF or PPTX: all pages/slides are extracted automatically. "
-             "Images: upload one per slide or all at once.",
-        label_visibility="collapsed",
-    )
-
-    # Process slides immediately so we can show a preview
-    _slide_b64_list: list[str] = []
-    if uploaded_slides:
-        with st.spinner(f"Processing {len(uploaded_slides)} slide file(s)…"):
-            _slide_b64_list, _slide_sections, _slide_cap_info = \
-                process_slide_files(uploaded_slides, ai_engine)
-        if _slide_b64_list:
-            st.success(f"✅ {_slide_cap_info}")
-            st.session_state["slide_sections"] = _slide_sections
-            with st.expander(f"👁️ Preview slides ({len(_slide_b64_list)})",
-                             expanded=False):
-                _prev_cols = st.columns(3)
-                for _si, _sb64 in enumerate(_slide_b64_list):
-                    with _prev_cols[_si % 3]:
-                        st.image(base64.b64decode(_sb64),
-                                 caption=f"Slide {_si + 1}",
-                                 width='stretch')
-
+        # Process slides immediately so we can show a preview
+        _slide_b64_list: list[str] = []
+        if uploaded_slides:
+            with st.spinner(f"Processing {len(uploaded_slides)} slide file(s)…"):
+                _slide_b64_list, _slide_sections, _slide_cap_info = \
+                    process_slide_files(uploaded_slides, ai_engine)
+            if _slide_b64_list:
+                st.success(f"✅ {_slide_cap_info}")
+                st.session_state["slide_sections"] = _slide_sections
+                if st.toggle(f"👁️ Preview slides ({len(_slide_b64_list)})", value=False, key="w_slide_preview"):
+                    _prev_cols = st.columns(3)
+                    for _si, _sb64 in enumerate(_slide_b64_list):
+                        with _prev_cols[_si % 3]:
+                            st.image(base64.b64decode(_sb64), caption=f"Slide {_si + 1}", width='stretch')
     # Store in session state so all modes can access it
     st.session_state["slide_images"] = _slide_b64_list if _slide_b64_list else None
 
-    _sidebar_section("🔧 AI Transcript Cleanup")
+    # ── Quick switches ─────────────────────────────────────────────────────────
+    st.session_state.setdefault("w_cleanup", True)
     do_cleanup = st.toggle(
-        "Auto-correct transcription errors",
-        value=True,
-        help="Uses AI to fix misheared words, local names, and code-switching errors before analysis.",
+        "🔧 Auto-correct transcript errors", key="w_cleanup",
+        help="Uses AI to fix misheard words, local names, and code-switching errors before analysis.",
     )
 
-    _sidebar_section("💾 Auto-Save")
-    auto_save = st.toggle("Auto-save results after analysis", value=True)
-
-    # Initialise save folder in session state
+    # ── Save ───────────────────────────────────────────────────────────────────
+    st.session_state.setdefault("w_autosave", True)
     if "save_folder" not in st.session_state:
         st.session_state.save_folder = str(Path.home() / "Documents" / "VidSage" / "results")
-
-    col_path, col_btn = st.columns([3, 1])
-    with col_path:
-        st.session_state.save_folder = st.text_input(
-            "Save folder", value=st.session_state.save_folder)
-    with col_btn:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("📁 Browse", width='stretch'):
-            import tkinter as tk
-            from tkinter import filedialog
-            root = tk.Tk()
-            root.withdraw()
-            root.wm_attributes("-topmost", True)
-            chosen = filedialog.askdirectory(
-                title="Select save folder",
-                initialdir=st.session_state.save_folder,
-            )
-            root.destroy()
-            if chosen:
-                st.session_state.save_folder = chosen
-                st.rerun()
-
+    _folder_name = Path(st.session_state.save_folder).name or st.session_state.save_folder
+    with _card("💾", "Auto-save", f"on · {_folder_name}" if st.session_state["w_autosave"] else "off"):
+        auto_save = st.toggle("Auto-save results after analysis", key="w_autosave")
+        col_path, col_btn = st.columns([3, 1])
+        with col_path:
+            st.session_state.save_folder = st.text_input("Save folder", value=st.session_state.save_folder)
+        with col_btn:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("📁 Browse", width='stretch'):
+                import tkinter as tk
+                from tkinter import filedialog
+                root = tk.Tk()
+                root.withdraw()
+                root.wm_attributes("-topmost", True)
+                chosen = filedialog.askdirectory(
+                    title="Select save folder", initialdir=st.session_state.save_folder)
+                root.destroy()
+                if chosen:
+                    st.session_state.save_folder = chosen
+                    st.rerun()
     save_folder = st.session_state.save_folder
 
-    st.info("**First run?** Whisper will auto-download the model (~1–3 GB). This happens once only.", icon="ℹ️")
+    st.caption("ℹ️ First run? Whisper downloads its model once (~1–3 GB).")
+    _save_prefs()
+
 
 def _tidy_md_for_display(text: str) -> str:
     """Make Obsidian-flavoured markdown (PKM notes) render cleanly inside Streamlit.
@@ -6301,11 +6394,24 @@ if _mode_key == "History":
 
         # ── Per-video expandable cards ────────────────────────────────────────
         st.subheader("📄 Individual Reports")
-        st.caption("Click any video below to read its explanation and download all saved files.")
+        st.caption("Click **Open this report** on a video to read its explanation and download all saved files.")
+
+        # Only the opened report is drawn in full. Drawing every report on every click (each has dozens of
+        # buttons, text boxes and file reads) made this page take ~10 s per click with 40 saved videos.
+        _hist_open_stamp = st.session_state.get("_hist_open")
 
         for e in history:
             vid_label = f"📹 {e['video_name']}   ·   {e['analyzed_at']}"
-            with st.expander(vid_label, expanded=False):
+            _is_open = (_hist_open_stamp == e.get("stamp", ""))
+            with st.expander(vid_label, expanded=_is_open):
+                if not _is_open:
+                    if st.button("📖 Open this report", key=f"hist_open_{e.get('stamp', '')}"):
+                        st.session_state["_hist_open"] = e.get("stamp", "")
+                        st.rerun()
+                    continue
+                if st.button("✖ Close this report", key=f"hist_close_{e.get('stamp', '')}"):
+                    st.session_state.pop("_hist_open", None)
+                    st.rerun()
 
                 folder    = e.get("save_folder", save_folder)
                 stamp     = e.get("stamp", "")

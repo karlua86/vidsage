@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.9.0 — 2026-10-07
+
+### Changed
+- **History summary is now a list of compact rows** instead of a spreadsheet: a narrow ☑ checkbox, the title with coloured
+  tag chips, the details (date, duration, words, chapters, frames, AI time) and a real **📖 Open / ✖ Close** button on each row
+  (the open row is highlighted). ☑ All / ☐ None select every row. Streamlit tables cannot hold buttons, so the old table is
+  gone; **renaming now happens inside the opened report** (the double-click rename in the table no longer exists). Tag actions
+  (Auto-tag, apply, remove) are unchanged. Still fast: ~0.7 s per click with 40 videos.
+- **Redesigned headings.** The hero title was meant to be a large gradient wordmark but Streamlit's paragraph styles overrode
+  it, so it showed as plain 16 px text. It is now a 3.1 rem gradient title with a logo tile inside a soft card, a darker readable
+  tagline and refreshed feature pills; the ~96 px of blank space above the page is removed. The mode selector is a segmented
+  control, and section headings get a consistent accent bar (h3) or gradient underline (h2).
+
 ## v1.8.1 — 2026-10-07
 
 ### Fixed

@@ -7,6 +7,7 @@ import os
 import subprocess
 import re
 import hashlib
+import html as _html
 import json
 import numpy as np
 import pandas as pd
@@ -2951,38 +2952,118 @@ st.markdown("""
 #MainMenu {visibility: hidden;}
 footer    {visibility: hidden;}
 
-/* ── Hero ── */
-.vs-hero {
+/* ── Page spacing: Streamlit leaves ~96 px of blank space above the first element ── */
+[data-testid="stMainBlockContainer"] { padding-top: 2.2rem !important; }
+
+/* ── Hero (selectors are prefixed so Streamlit's own paragraph styles cannot override them) ── */
+[data-testid="stMarkdownContainer"] .vs-hero {
     text-align: center;
-    padding: 2rem 0 1rem;
+    padding: 1.6rem 1rem 1.3rem;
+    margin-bottom: 0.4rem;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #F3F4FF 0%, #FFFFFF 100%);
+    border: 1px solid #E4E7FB;
 }
-.vs-title {
-    font-size: 5rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 60%, #A855F7 100%);
+[data-testid="stMarkdownContainer"] .vs-brand {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+}
+[data-testid="stMarkdownContainer"] .vs-logo {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 54px; height: 54px; border-radius: 16px; font-size: 1.9rem;
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
+}
+[data-testid="stMarkdownContainer"] .vs-title {
+    font-size: 3.1rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em;
+    line-height: 1.1 !important;
+    margin: 0 !important;
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 55%, #A855F7 100%);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin: 0;
-    line-height: 1.1;
+    -webkit-text-fill-color: transparent;
+    color: transparent !important;
 }
-.vs-tagline {
-    color: #64748B;
-    font-size: 1.1rem;
-    margin: 0.5rem 0 1rem;
+[data-testid="stMarkdownContainer"] .vs-tagline {
+    color: #475569 !important;
+    font-size: 1.12rem !important;
+    margin: 0.7rem auto 1.1rem !important;
+    max-width: 640px;
 }
-.vs-pill {
+[data-testid="stMarkdownContainer"] .vs-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+[data-testid="stMarkdownContainer"] .vs-pill {
     display: inline-block;
-    background: #EEF2FF;
-    color: #4338CA;
+    background: #FFFFFF;
+    color: #3730A3 !important;
     border: 1px solid #C7D2FE;
-    padding: 4px 13px;
-    border-radius: 20px;
-    font-size: 0.76rem;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem !important;
     font-weight: 600;
-    margin: 3px 2px;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, 0.08);
+    transition: transform .12s, box-shadow .12s, border-color .12s;
 }
-.vs-divider { margin: 1.5rem 0 0; border-top: 1px solid #E2E8F0; }
+[data-testid="stMarkdownContainer"] .vs-pill:hover {
+    transform: translateY(-1px);
+    border-color: #818CF8;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.16);
+}
+
+/* ── Mode selector (Single / Batch / Online / History) as a segmented control ── */
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) [role="radiogroup"] {
+    gap: 4px;
+    background: #EEF1FF;
+    padding: 5px;
+    border-radius: 14px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.2rem auto 0.6rem;
+}
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label {
+    padding: 8px 18px;
+    border-radius: 10px;
+    margin: 0;
+    cursor: pointer;
+    transition: background .12s;
+}
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label > div:first-child { display: none; }  /* hide the radio dot */
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label p { font-weight: 600; color: #475569; font-size: 0.95rem; }
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label:hover { background: rgba(99, 102, 241, 0.10); }
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label:has(input:checked) {
+    background: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.18);
+}
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label:has(input:checked) p { color: #4338CA; }
+[data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) { display: flex; justify-content: center; }
+
+/* ── Section headings in the main area ── */
+section[data-testid="stMain"] h2 {
+    font-size: 1.7rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.015em;
+    color: #1E1B4B !important;
+    padding-bottom: 0.35rem !important;
+    position: relative;
+}
+section[data-testid="stMain"] h2::after {
+    content: "";
+    display: block;
+    width: 52px;
+    height: 4px;
+    margin-top: 6px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #6366F1, #A855F7);
+}
+section[data-testid="stMain"] h3 {
+    font-size: 1.28rem !important;
+    font-weight: 700 !important;
+    color: #1E1B4B !important;
+    border-left: 4px solid #6366F1;
+    padding-left: 12px !important;
+    margin-top: 0.8rem;
+}
+section[data-testid="stMain"] .vs-empty h3 { border-left: none; padding-left: 0 !important; }
 
 /* ── Empty-state card ── */
 .vs-empty {
@@ -3187,18 +3268,17 @@ section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div > div {
 # ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="vs-hero">
-  <p class="vs-title">🎬 VidSage</p>
-  <p class="vs-tagline">Drop a video. Get the full story — transcript, chapters, AI explanation &amp; Q&amp;A.</p>
-  <div>
-    <span class="vs-pill">🎙️ Whisper Transcription</span>
-    <span class="vs-pill">🧠 Scene Detection</span>
-    <span class="vs-pill">📑 Auto Chapters</span>
-    <span class="vs-pill">💬 Q&amp;A Mode</span>
-    <span class="vs-pill">📄 Word / PDF Export</span>
-    <span class="vs-pill">▶️ Online Video (YouTube, Vimeo &amp; more)</span>
-    <span class="vs-pill">🇲🇾 EN / BM / ZH</span>
+  <div class="vs-brand"><span class="vs-logo">🎬</span><span class="vs-title">VidSage</span></div>
+  <div class="vs-tagline">Drop a video. Get the full story — transcript, chapters, AI explanation &amp; Q&amp;A.</div>
+  <div class="vs-pills">
+    <span class="vs-pill">🎙️ Transcription</span>
+    <span class="vs-pill">🧠 Scene detection</span>
+    <span class="vs-pill">📑 Auto chapters</span>
+    <span class="vs-pill">💬 Q&amp;A</span>
+    <span class="vs-pill">📄 Word / PDF export</span>
+    <span class="vs-pill">▶️ YouTube, Vimeo &amp; more</span>
+    <span class="vs-pill">🇲🇾 EN · BM · 中文</span>
   </div>
-  <div class="vs-divider"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -6179,146 +6259,56 @@ if _mode_key == "History":
                 )
         st.markdown("")
 
-        # ── Summary table ─────────────────────────────────────────────────────
-        st.subheader("📊 Summary Table")
-        st.caption(
-            "**Double-click a video title** to rename it (renames all related files).  "
-            "**Check the ☑ box** to select rows (delete / tag). **Tick 📖 Open** to read a video's full report."
-        )
+        # ── Summary list: one compact row per video, each with a real Open button ──
+        st.subheader("📊 Summary")
+        st.caption("☑ select rows to delete or tag them  ·  **📖 Open** reads that video's full report below "
+                   "(you can rename it from inside the report).")
 
-        # Build rows — keep original titles separately so we can detect edits
-        # Selection and "open" state survive the table being reset (the key changes when a report is opened/closed)
-        _hist_sel_set  = set(st.session_state.get("_hist_sel_stamps", []))
         _hist_open_now = st.session_state.get("_hist_open")
-        _editor_ver    = st.session_state.get("_hist_editor_ver", 0)
-        rows = []
+
+        _sa1, _sa2, _sa3 = st.columns([1.1, 1.1, 9])
+        with _sa1:
+            if st.button("☑ All", key="hist_sel_all", help="Select every video shown", width="stretch"):
+                for _e in history:
+                    st.session_state[f"hsel_{_e.get('stamp', '')}"] = True
+                st.rerun()
+        with _sa2:
+            if st.button("☐ None", key="hist_sel_none", help="Clear the selection", width="stretch"):
+                for _e in history:
+                    st.session_state[f"hsel_{_e.get('stamp', '')}"] = False
+                st.rerun()
+
+        _sel_entries = []
         for e in history:
-            rows.append({
-                "☑":          e.get("stamp") in _hist_sel_set,
-                "📖 Open":    e.get("stamp") == _hist_open_now,
-                "Video":      os.path.splitext(e["video_name"])[0],
-                "Tags":       ", ".join(e.get("tags", [])),
-                "Analysed":   e["analyzed_at"],
-                "Duration":   fmt_time(e.get("video_duration_sec", 0)),
-                "AI Time":    _fmt_analysis_time(e.get("analysis_time_sec", 0)),
-                "Words":      f"{e.get('word_count', 0):,}",
-                "Chapters":   e.get("chapter_count", 0),
-                "Frames":     e.get("frame_count", 0),
-                "Frame Mode": e.get("frame_mode", "—").split(" ", 1)[-1],
-            })
-
-        _orig_titles = [os.path.splitext(e["video_name"])[0] for e in history]
-
-        _edited_df = st.data_editor(
-            pd.DataFrame(rows),
-            column_config={
-                "☑":          st.column_config.CheckboxColumn(
-                                  "☑",
-                                  help="Check to select this row (for delete / tagging).",
-                                  width="small",
-                              ),
-                "📖 Open":    st.column_config.CheckboxColumn(
-                                  "📖 Open",
-                                  help="Tick to read this video's full report below the table "
-                                       "(one report at a time). Untick to close it.",
-                                  width="small",
-                              ),
-                "Video":      st.column_config.TextColumn(
-                                  "📹 Video  (double-click to rename)",
-                                  help="Double-click a title to rename it. "
-                                       "All saved files will be renamed automatically.",
-                                  max_chars=120,
-                              ),
-                "Tags":       st.column_config.TextColumn(
-                                  "🏷️ Tags  (double-click to edit)",
-                                  help="Comma-separated. e.g: memory, training",
-                                  width="medium",
-                              ),
-                "Analysed":   st.column_config.TextColumn(disabled=True),
-                "Duration":   st.column_config.TextColumn(disabled=True),
-                "AI Time":    st.column_config.TextColumn(disabled=True),
-                "Words":      st.column_config.TextColumn(disabled=True),
-                "Chapters":   st.column_config.NumberColumn(disabled=True),
-                "Frames":     st.column_config.NumberColumn(disabled=True),
-                "Frame Mode": st.column_config.TextColumn(disabled=True),
-            },
-            disabled=["Analysed", "Duration", "AI Time", "Words",
-                      "Chapters", "Frames", "Frame Mode"],
-            hide_index=True,
-            key=f"history_table_edit_{_editor_ver}",
-            width="stretch",
-        )
-
-        # ── Detect inline renames ─────────────────────────────────────────────
-        if _edited_df is not None:
-            for _ri, (_new_title, _old_title, _entry) in enumerate(
-                    zip(_edited_df["Video"], _orig_titles, history)):
-                _new_title = (_new_title or "").strip()
-                if _new_title and _new_title != _old_title:
-                    _bad_chars = [c for c in _new_title if c in r'\/:*?"<>|']
-                    if _bad_chars:
-                        st.error(
-                            f"❌ Title contains invalid characters: "
-                            f"{' '.join(set(_bad_chars))}"
-                        )
-                    else:
-                        _entry_folder = _entry.get("save_folder", save_folder)
-                        _entry_stamp  = _entry.get("stamp", "")
-                        with st.spinner(f'Renaming to "{_new_title}"…'):
-                            _ok, _msg = rename_history_entry(
-                                _entry_folder, _entry_stamp,
-                                _old_title, _new_title,
-                            )
-                        if _ok:
-                            st.success(f"✅ {_msg}")
-                            st.rerun()
+            _stamp = e.get("stamp", "")
+            _is_open = (_stamp == _hist_open_now)
+            with st.container(border=True):
+                _c_chk, _c_main, _c_meta, _c_btn = st.columns([0.4, 5, 3.7, 1.6], vertical_alignment="center")
+                with _c_chk:
+                    if st.checkbox("Select", key=f"hsel_{_stamp}", label_visibility="collapsed"):
+                        _sel_entries.append(e)
+                with _c_main:
+                    _chips = "".join(
+                        f'<span style="background:{_tag_colour(t)};color:#fff;padding:1px 9px;border-radius:10px;'
+                        f'font-size:11px;margin-right:4px;display:inline-block">{_html.escape(t)}</span>'
+                        for t in e.get("tags", []))
+                    st.markdown(
+                        f'<div style="font-weight:600;line-height:1.3">{_html.escape(os.path.splitext(e["video_name"])[0])}</div>'
+                        + (f'<div style="margin-top:3px">{_chips}</div>' if _chips else ""),
+                        unsafe_allow_html=True)
+                with _c_meta:
+                    st.caption(
+                        f"{e['analyzed_at']}  \n⏱ {fmt_time(e.get('video_duration_sec', 0))} · "
+                        f"📝 {e.get('word_count', 0):,} words · 📑 {e.get('chapter_count', 0)} · "
+                        f"🖼 {e.get('frame_count', 0)} · 🤖 {_fmt_analysis_time(e.get('analysis_time_sec', 0))}")
+                with _c_btn:
+                    if st.button("✖ Close" if _is_open else "📖 Open", key=f"hist_open_{_stamp}",
+                                 type="primary" if _is_open else "secondary", width="stretch"):
+                        if _is_open:
+                            st.session_state.pop("_hist_open", None)
                         else:
-                            st.error(f"❌ {_msg}")
-
-        # ── Detect inline tag edits — SILENT save, no rerun (avoids flash) ─────
-        _orig_tags = [", ".join(e.get("tags", [])) for e in history]
-        if _edited_df is not None and "Tags" in _edited_df.columns:
-            for _ri, (_ntags, _otags, _entry) in enumerate(
-                    zip(_edited_df["Tags"], _orig_tags, history)):
-                _ntags = (_ntags or "").strip()
-                if _ntags != _otags:
-                    _parsed = [t.strip().lower() for t in _ntags.split(",") if t.strip()][:6]
-                    try:
-                        _hp3 = _history_path(_entry.get("save_folder", save_folder))
-                        with open(_hp3, "r", encoding="utf-8") as _f3:
-                            _r3 = json.load(_f3)
-                        for _rec3 in _r3:
-                            if _rec3.get("stamp") == _entry.get("stamp"):
-                                _rec3["tags"] = _parsed
-                                break
-                        with open(_hp3, "w", encoding="utf-8") as _f3:
-                            json.dump(_r3, _f3, ensure_ascii=False, indent=2)
-                        # NO st.rerun() — data_editor already shows updated value
-                    except Exception as _te:
-                        st.error(f"Tag save failed: {_te}")
-
-        # ── Detect row selection via checkbox ─────────────────────────────────
-        _sel_rows = (
-            _edited_df.index[_edited_df["☑"] == True].tolist()
-            if _edited_df is not None and "☑" in _edited_df.columns
-            else []
-        )
-        _sel_entries = [history[i] for i in _sel_rows if i < len(history)]
-        st.session_state["_hist_sel_stamps"] = [e.get("stamp") for e in _sel_entries]
-
-        # ── Detect "Open" ticks: one report at a time ─────────────────────────
-        if _edited_df is not None and "📖 Open" in _edited_df.columns:
-            _open_rows = [i for i in _edited_df.index[_edited_df["📖 Open"] == True].tolist() if i < len(history)]
-            _cur_idx = next((i for i, e in enumerate(history) if e.get("stamp") == _hist_open_now), None)
-            _newly = [i for i in _open_rows if i != _cur_idx]
-            if _newly:                                   # a different row was ticked → open it
-                st.session_state["_hist_open"] = history[_newly[0]].get("stamp", "")
-                st.session_state["_hist_editor_ver"] = _editor_ver + 1
-                st.rerun()
-            elif _cur_idx is not None and _cur_idx not in _open_rows:   # the open row was unticked → close
-                st.session_state.pop("_hist_open", None)
-                st.session_state["_hist_editor_ver"] = _editor_ver + 1
-                st.rerun()
+                            st.session_state["_hist_open"] = _stamp
+                        st.rerun()
 
         # ── Row-level actions ─────────────────────────────────────────────────
         _act_col1, _act_col2, _act_col3, _act_col4 = st.columns([2, 2, 2, 2])
@@ -6359,7 +6349,7 @@ if _mode_key == "History":
             )
             if st.button(_del_label,
                          disabled=_del_disabled,
-                         help="Check rows to select them, then click here to delete"):
+                         help="Tick the ☑ on rows to select them, then click here to delete"):
                 st.session_state["_confirm_delete_stamps"] = [
                     e["stamp"] for e in _sel_entries
                 ]

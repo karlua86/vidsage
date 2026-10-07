@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.9.3 — 2026-10-07
+
+### Changed
+- **`watch.py` / the Claude Code skill now default to `--stt auto`:** videos without captions are transcribed on the local GPU with
+  Faster-Whisper-XXL when it is installed, and fall back to regular local Whisper (CPU) when it is not. Before, the default was
+  always the slow CPU Whisper even though the app itself defaults to the GPU engine. Both paths tested.
+- `claude-skill/vidsage-watch/SKILL.md` brought up to date: documents `--stt auto`, `--threshold`, `--no-transcript`, `--out`, and
+  points to the VidSage app when the user wants a lasting report (chapters, Word/PDF, tags, Q&A).
+
 ## v1.9.2 — 2026-10-07
 
 ### Fixed

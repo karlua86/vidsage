@@ -131,6 +131,9 @@ FILTER_ALIASES = {"off": "Off", "denoise": "Light denoise", "rnnoise": "Remove n
 def whisper_transcribe(clip_path: str, model_size: str, lang: str | None, stt: str = "local",
                        fw_model: str = "large-v2", hotwords: str = "", xxl_filter: str = "off"):
     from subprocess import run
+    if stt == "auto":                       # prefer the free, private GPU engine when it is installed
+        from xxl_stt import find_xxl
+        stt = "xxl" if find_xxl(_xxl_configured()) else "local"
     with tempfile.TemporaryDirectory() as td:
         wav = os.path.join(td, "audio.wav")
         run(["ffmpeg", "-y", "-i", clip_path, "-vn", "-acodec", "pcm_s16le",
@@ -230,8 +233,8 @@ def main() -> int:
     ap.add_argument("--at", help="comma-separated timestamps to grab exact frames, e.g. 14:05,14:40")
     ap.add_argument("--transcript-only", action="store_true", help="skip frames")
     ap.add_argument("--no-transcript", action="store_true", help="skip transcript")
-    ap.add_argument("--stt", choices=["local", "xxl", "groq", "openai"], default="local",
-                    help="speech-to-text when there are no captions: local Whisper (free), xxl = your local "
+    ap.add_argument("--stt", choices=["auto", "local", "xxl", "groq", "openai"], default="auto",
+                    help="speech-to-text when there are no captions: auto (default) = your local GPU Faster-Whisper-XXL if installed, else local Whisper; local = regular Whisper on the CPU (free, slow); xxl = your local "
                          "Faster-Whisper-XXL install on the GPU (free, private; folder from FW_XXL_PATH or "
                          ".streamlit/secrets.toml), or cloud "
                          "Groq/OpenAI (fast; uploads the AUDIO only; key from GROQ_API_KEY / "

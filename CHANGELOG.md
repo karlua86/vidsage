@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.8.0 — 2026-10-07
+
+### Added
+- **AI auto-tagging in History.** *🤖 Auto-tag selected* and *🤖 Auto-tag all untagged (N)* read each saved explanation
+  and add 2–4 English topic tags (merged with existing tags, max 6), using the AI engine chosen in the sidebar.
+- **📖 Open column in the History summary table.** Tick it to read that video's full report directly under the table
+  (one at a time; untick or *Close this report* to hide it). Your ☑ selection survives opening/closing. The separate
+  "Individual Reports" list is removed.
+
+### Changed
+- The save-folder button in the sidebar is now just the 📁 icon (hover for "Browse for a folder").
+
+### Fixed
+- **Auto-tags and AI titles never worked for Claude or Gemini** — the code compared the engine name with `"Claude"` /
+  `"Gemini"` while the app passes `"Claude (Paid)"` / `"Gemini (Free)"`, so it always returned nothing (the cause of the
+  empty Tags column and the missing AI titles). It now matches the real engine names, and DeepSeek and OpenAI are
+  supported too (new shared helper for short AI replies). This also fixes the *✨ AI Tag* / *✨ AI Title* buttons inside a report.
+
 ## v1.7.0 — 2026-10-07
 
 ### Changed

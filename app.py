@@ -2392,51 +2392,65 @@ def _tag_colour(tag: str) -> str:
     return _TAG_PALETTE[abs(hash(tag)) % len(_TAG_PALETTE)]
 
 
-def generate_tags(video_name: str, explanation: str,
-                  ai_engine: str, claude_key: str, gemini_key: str) -> list[str]:
+def _ai_short_reply(prompt: str, ai_engine: str, claude_key: str = "", gemini_key: str = "",
+                    openai_key: str = "", max_tokens: int = 60) -> str:
+    """One short text answer from whichever AI engine is selected ('' on any failure).
+    Accepts the full engine names used by the app ("Claude (Paid)", "Gemini (Free)", DeepSeek, OpenAI)."""
+    try:
+        name = str(ai_engine)
+        if name.startswith("Claude") and claude_key:
+            import anthropic
+            client = anthropic.Anthropic(api_key=claude_key)
+            resp = client.messages.create(
+                model="claude-haiku-4-5", max_tokens=max_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return resp.content[0].text.strip()
+        if name.startswith("Gemini") and gemini_key:
+            from google import genai as google_genai
+            client = google_genai.Client(api_key=gemini_key)
+            return _gemini_generate(client, prompt).text.strip()
+        if _is_oai(name) and openai_key:
+            client = _oai_client(name, openai_key)
+            resp = client.chat.completions.create(
+                model=_oai_model(name, "small"), max_tokens=max_tokens,
+                messages=[{"role": "user", "content": prompt}], **_oai_extra(name),
+            )
+            return resp.choices[0].message.content.strip()
+    except Exception:
+        pass
+    return ""
+
+
+def generate_tags(video_name: str, explanation: str, ai_engine: str, claude_key: str = "",
+                  gemini_key: str = "", openai_key: str = "") -> list[str]:
     """
     Ask the AI to suggest 2-4 short topic tags for the video.
     Returns a list of lowercase strings, e.g. ['memory', 'training', 'chinese'].
-    Returns [] on any failure.
+    Returns [] on any failure.  (Used to silently return [] for every engine because the engine
+    name was compared against "Claude"/"Gemini" instead of the real "Claude (Paid)" etc.)
     """
     prompt = (
         "Based on the video title and explanation excerpt, suggest 2 to 4 short topic tags "
         "(1-2 words each) that best categorise this video.\n\n"
         "Rules:\n"
         "- Return ONLY the tags as a comma-separated list — no numbers, no bullets, no explanation\n"
-        "- Lowercase only\n"
+        "- Write the tags in English, lowercase\n"
         "- Be specific and meaningful (avoid generic tags like 'video' or 'content')\n"
         "- Good examples: training, property, memory, marketing, language learning, "
         "productivity, tutorial, sales, investing, real estate\n\n"
         f"VIDEO TITLE: {video_name}\n\n"
-        f"EXPLANATION (excerpt):\n{explanation[:1000]}"
+        f"EXPLANATION (excerpt):\n{explanation[:1500]}"
     )
-    try:
-        raw = ""
-        if ai_engine == "Claude" and claude_key:
-            import anthropic
-            client = anthropic.Anthropic(api_key=claude_key)
-            resp = client.messages.create(
-                model="claude-sonnet-4-6", max_tokens=60,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            raw = resp.content[0].text.strip()
-        elif ai_engine == "Gemini" and gemini_key:
-            from google import genai as google_genai
-            client = google_genai.Client(api_key=gemini_key)
-            resp = _gemini_generate(client, prompt)
-            raw = resp.text.strip()
-        if raw:
-            tags = [t.strip().lower().strip('"').strip("'")
-                    for t in raw.split(",")]
-            return [t for t in tags if t and len(t) <= 30][:4]
-    except Exception:
-        pass
-    return []
+    raw = _ai_short_reply(prompt, ai_engine, claude_key, gemini_key, openai_key, max_tokens=60)
+    if not raw:
+        return []
+    tags = [t.strip().lower().strip('"').strip("'").strip(".") for t in re.split(r"[,\n]", raw)]
+    return [t for t in tags if t and len(t) <= 30][:4]
 
 
-def generate_video_title(explanation: str, full_transcript: str,
-                          ai_engine: str, claude_key: str, gemini_key: str) -> str:
+def generate_video_title(explanation: str, full_transcript: str, ai_engine: str,
+                         claude_key: str = "", gemini_key: str = "", openai_key: str = "") -> str:
     """
     Ask the AI to suggest a concise, descriptive title for the video based on
     its explanation and transcript.  Returns a plain string (no quotes, no
@@ -2452,23 +2466,43 @@ def generate_video_title(explanation: str, full_transcript: str,
         f"EXPLANATION (excerpt):\n{explanation[:1500]}\n\n"
         f"TRANSCRIPT (first 500 words):\n{' '.join(full_transcript.split()[:500])}"
     )
-    try:
-        if ai_engine == "Claude" and claude_key:
-            import anthropic
-            client = anthropic.Anthropic(api_key=claude_key)
-            resp = client.messages.create(
-                model="claude-sonnet-4-6", max_tokens=40,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return resp.content[0].text.strip().strip('"').strip("'")
-        elif ai_engine == "Gemini" and gemini_key:
-            from google import genai as google_genai
-            client = google_genai.Client(api_key=gemini_key)
-            resp = _gemini_generate(client, prompt)
-            return resp.text.strip().strip('"').strip("'")
-    except Exception:
-        pass
-    return ""
+    return _ai_short_reply(prompt, ai_engine, claude_key, gemini_key, openai_key,
+                           max_tokens=40).strip('"').strip("'")
+
+
+def auto_tag_history_entries(entries: list, default_folder: str, ai_engine: str, claude_key: str,
+                             gemini_key: str, openai_key: str, progress=None) -> tuple:
+    """AI-tag saved videos from their saved explanation. New tags are merged with existing ones (max 6).
+    Returns (videos_tagged, videos_failed)."""
+    tagged = failed = 0
+    for i, e in enumerate(entries):
+        folder = e.get("save_folder", default_folder)
+        expl_name = next((f for f in e.get("files", []) if f.endswith("_explanation.md")), None)
+        text = ""
+        if expl_name and os.path.exists(os.path.join(folder, expl_name)):
+            with open(os.path.join(folder, expl_name), "r", encoding="utf-8") as fh:
+                text = fh.read()
+        tags = generate_tags(e["video_name"], text or e["video_name"], ai_engine,
+                             claude_key, gemini_key, openai_key) if (text or e.get("video_name")) else []
+        if tags:
+            try:
+                hp = _history_path(folder)
+                with open(hp, "r", encoding="utf-8") as fh:
+                    recs = json.load(fh)
+                for r in recs:
+                    if r.get("stamp") == e.get("stamp"):
+                        r["tags"] = list(dict.fromkeys(r.get("tags", []) + tags))[:6]
+                        break
+                with open(hp, "w", encoding="utf-8") as fh:
+                    json.dump(recs, fh, ensure_ascii=False, indent=2)
+                tagged += 1
+            except Exception:
+                failed += 1
+        else:
+            failed += 1
+        if progress:
+            progress((i + 1) / len(entries), e["video_name"])
+    return tagged, failed
 
 
 def _verbosity_note(n_slides: int, n_frames: int) -> str:
@@ -3578,12 +3612,12 @@ with st.sidebar:
     _folder_name = Path(st.session_state.save_folder).name or st.session_state.save_folder
     with _card("💾", "Auto-save", f"on · {_folder_name}" if st.session_state["w_autosave"] else "off"):
         auto_save = st.toggle("Auto-save results after analysis", key="w_autosave")
-        col_path, col_btn = st.columns([3, 1])
+        col_path, col_btn = st.columns([5, 1])
         with col_path:
             st.session_state.save_folder = st.text_input("Save folder", value=st.session_state.save_folder)
         with col_btn:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("📁 Browse", width='stretch'):
+            if st.button("📁", width='stretch', help="Browse for a folder"):
                 import tkinter as tk
                 from tkinter import filedialog
                 root = tk.Tk()
@@ -4990,7 +5024,7 @@ def process_one_video(video_file, video_name: str, status_container,
         # ── Generate AI title (runs whether or not auto_save is on) ──────
         status_container.write("🏷️ Generating AI title…")
         ai_title = generate_video_title(
-            explanation, full_transcript, ai_engine, claude_key, gemini_key)
+            explanation, full_transcript, ai_engine, claude_key, gemini_key, openai_key)
 
         # Persist AI title into history entry if we auto-saved
         if auto_save and ai_title:
@@ -5009,7 +5043,7 @@ def process_one_video(video_file, video_name: str, status_container,
 
         # ── Generate AI tags ─────────────────────────────────────────────
         status_container.write("🏷️ Auto-tagging…")
-        ai_tags = generate_tags(video_name, explanation, ai_engine, claude_key, gemini_key)
+        ai_tags = generate_tags(video_name, explanation, ai_engine, claude_key, gemini_key, openai_key)
 
         if auto_save and ai_tags:
             hpath = _history_path(save_folder)
@@ -6131,14 +6165,19 @@ if _mode_key == "History":
         st.subheader("📊 Summary Table")
         st.caption(
             "**Double-click a video title** to rename it (renames all related files).  "
-            "**Check the ☑ box** on a row to select it, then use the action buttons below."
+            "**Check the ☑ box** to select rows (delete / tag). **Tick 📖 Open** to read a video's full report."
         )
 
         # Build rows — keep original titles separately so we can detect edits
+        # Selection and "open" state survive the table being reset (the key changes when a report is opened/closed)
+        _hist_sel_set  = set(st.session_state.get("_hist_sel_stamps", []))
+        _hist_open_now = st.session_state.get("_hist_open")
+        _editor_ver    = st.session_state.get("_hist_editor_ver", 0)
         rows = []
         for e in history:
             rows.append({
-                "☑":          False,
+                "☑":          e.get("stamp") in _hist_sel_set,
+                "📖 Open":    e.get("stamp") == _hist_open_now,
                 "Video":      os.path.splitext(e["video_name"])[0],
                 "Tags":       ", ".join(e.get("tags", [])),
                 "Analysed":   e["analyzed_at"],
@@ -6157,7 +6196,13 @@ if _mode_key == "History":
             column_config={
                 "☑":          st.column_config.CheckboxColumn(
                                   "☑",
-                                  help="Check to select this row.",
+                                  help="Check to select this row (for delete / tagging).",
+                                  width="small",
+                              ),
+                "📖 Open":    st.column_config.CheckboxColumn(
+                                  "📖 Open",
+                                  help="Tick to read this video's full report below the table "
+                                       "(one report at a time). Untick to close it.",
                                   width="small",
                               ),
                 "Video":      st.column_config.TextColumn(
@@ -6182,7 +6227,7 @@ if _mode_key == "History":
             disabled=["Analysed", "Duration", "AI Time", "Words",
                       "Chapters", "Frames", "Frame Mode"],
             hide_index=True,
-            key="history_table_edit",
+            key=f"history_table_edit_{_editor_ver}",
             width="stretch",
         )
 
@@ -6241,12 +6286,53 @@ if _mode_key == "History":
             else []
         )
         _sel_entries = [history[i] for i in _sel_rows if i < len(history)]
+        st.session_state["_hist_sel_stamps"] = [e.get("stamp") for e in _sel_entries]
+
+        # ── Detect "Open" ticks: one report at a time ─────────────────────────
+        if _edited_df is not None and "📖 Open" in _edited_df.columns:
+            _open_rows = [i for i in _edited_df.index[_edited_df["📖 Open"] == True].tolist() if i < len(history)]
+            _cur_idx = next((i for i, e in enumerate(history) if e.get("stamp") == _hist_open_now), None)
+            _newly = [i for i in _open_rows if i != _cur_idx]
+            if _newly:                                   # a different row was ticked → open it
+                st.session_state["_hist_open"] = history[_newly[0]].get("stamp", "")
+                st.session_state["_hist_editor_ver"] = _editor_ver + 1
+                st.rerun()
+            elif _cur_idx is not None and _cur_idx not in _open_rows:   # the open row was unticked → close
+                st.session_state.pop("_hist_open", None)
+                st.session_state["_hist_editor_ver"] = _editor_ver + 1
+                st.rerun()
 
         # ── Row-level actions ─────────────────────────────────────────────────
-        _act_col1, _act_col2, _act_col3 = st.columns([2, 2, 4])
+        _act_col1, _act_col2, _act_col3, _act_col4 = st.columns([2, 2, 2, 2])
         with _act_col1:
             if st.button("📂 Open Save Folder"):
                 os.startfile(save_folder)
+        _untagged = [e for e in history if not e.get("tags")]
+        _auto_targets = None
+        with _act_col3:
+            if st.button(f"🤖 Auto-tag selected ({len(_sel_entries)})" if _sel_entries else "🤖 Auto-tag selected",
+                         disabled=not _sel_entries, key="autotag_sel",
+                         help="The AI reads each selected video's saved explanation and adds 2–4 topic tags."):
+                _auto_targets = _sel_entries
+        with _act_col4:
+            if st.button(f"🤖 Auto-tag all untagged ({len(_untagged)})", disabled=not _untagged,
+                         key="autotag_all",
+                         help="Tag every video that has no tags yet, using the AI engine chosen in the sidebar."):
+                _auto_targets = _untagged
+        if _auto_targets:
+            if not active_key:
+                st.error("Add your API key for the selected AI engine (sidebar → AI engine) to auto-tag.")
+            else:
+                _bar = st.progress(0.0, text="Auto-tagging…")
+                _ok, _bad = auto_tag_history_entries(
+                    _auto_targets, save_folder, ai_engine, claude_key, gemini_key, openai_key,
+                    progress=lambda f, n: _bar.progress(f, text=f"Tagged {n}"))
+                _bar.empty()
+                st.session_state["_autotag_msg"] = (
+                    f"🤖 Auto-tagged {_ok} video(s)" + (f" · {_bad} could not be tagged" if _bad else ""))
+                st.rerun()
+        if st.session_state.get("_autotag_msg"):
+            st.success(st.session_state.pop("_autotag_msg"))
         with _act_col2:
             _del_disabled = len(_sel_entries) == 0
             _del_label = (
@@ -6393,24 +6479,21 @@ if _mode_key == "History":
         st.markdown("---")
 
         # ── Per-video expandable cards ────────────────────────────────────────
-        st.subheader("📄 Individual Reports")
-        st.caption("Click **Open this report** on a video to read its explanation and download all saved files.")
+        _open_stamp = st.session_state.get("_hist_open")
+        _open_entries = [e for e in history if e.get("stamp") == _open_stamp]
+        if not _open_entries:
+            st.caption("📖 Tick **Open** on a row of the table above to read that video's full report here.")
+        else:
+            st.subheader("📄 Report")
 
-        # Only the opened report is drawn in full. Drawing every report on every click (each has dozens of
-        # buttons, text boxes and file reads) made this page take ~10 s per click with 40 saved videos.
-        _hist_open_stamp = st.session_state.get("_hist_open")
-
-        for e in history:
+        # Only the opened report is drawn. Drawing every report on every click made this page take ~10 s
+        # per click with 40 saved videos.
+        for e in _open_entries:
             vid_label = f"📹 {e['video_name']}   ·   {e['analyzed_at']}"
-            _is_open = (_hist_open_stamp == e.get("stamp", ""))
-            with st.expander(vid_label, expanded=_is_open):
-                if not _is_open:
-                    if st.button("📖 Open this report", key=f"hist_open_{e.get('stamp', '')}"):
-                        st.session_state["_hist_open"] = e.get("stamp", "")
-                        st.rerun()
-                    continue
+            with st.expander(vid_label, expanded=True):
                 if st.button("✖ Close this report", key=f"hist_close_{e.get('stamp', '')}"):
                     st.session_state.pop("_hist_open", None)
+                    st.session_state["_hist_editor_ver"] = st.session_state.get("_hist_editor_ver", 0) + 1
                     st.rerun()
 
                 folder    = e.get("save_folder", save_folder)
@@ -6469,7 +6552,7 @@ if _mode_key == "History":
                                     _trans_txt = _fh.read()
                             new_ai = generate_video_title(
                                 _expl_txt, _trans_txt,
-                                ai_engine, claude_key, gemini_key)
+                                ai_engine, claude_key, gemini_key, openai_key)
                             if new_ai:
                                 st.session_state[_ai_title_key] = new_ai
                                 # Persist to history JSON
@@ -6551,7 +6634,7 @@ if _mode_key == "History":
                         with st.spinner("Generating tags…"):
                             _new_ai_tags = generate_tags(
                                 e["video_name"], _expl_t2,
-                                ai_engine, claude_key, gemini_key)
+                                ai_engine, claude_key, gemini_key, openai_key)
                         if _new_ai_tags:
                             try:
                                 _hp2 = _history_path(folder)

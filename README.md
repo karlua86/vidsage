@@ -8,6 +8,7 @@ VidSage is an AI-powered video analysis tool that extracts transcripts, generate
 
 ## 🆕 What's new in v1.1 – v1.3
 
+- **🤖 AI auto-tagging + one-click reports in History (v1.8)** — *Auto-tag selected* / *Auto-tag all untagged* let the AI read each saved explanation and add topic tags. Tick **📖 Open** on a row of the summary table to read that video's full report below it (the long list of reports is gone). Auto-tagging and AI titles had silently never worked for Claude and Gemini and weren't supported for DeepSeek/OpenAI — all fixed.
 - **🧭 Simpler, readable sidebar + remembered settings (v1.7)** — each option is a compact card that shows only what's selected (open it to change it). Defaults are DeepSeek Flash + local GPU transcription, and VidSage remembers your last choices (`Documents\VidSage\settings.json`; API keys are never saved there). Text contrast was raised so everything is easy to read. The **History** page is also about 15× faster with many saved videos: a report's details load when you open it.
 - **🚀 Local GPU transcription (v1.6)** — use your own [Faster-Whisper-XXL](https://github.com/Purfview/whisper-standalone-win) folder from the sidebar: free, private, runs on your NVIDIA GPU (about 3–4× faster than regular local Whisper on a laptop GPU in testing). VidSage only runs it; it never changes that folder.
 - **🛠️ Fixed Multilingual mode (v1.6)** — the old language hint made Whisper hallucinate (fake subtitle credits, "thanks for watching" loops, even repeating the hint). No hint is sent now; use the new *Names & terms* box for spelling.

@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.8.1 — 2026-10-07
+
+### Fixed
+- The sidebar 📁 save-folder button had its icon off-centre (squeezed by the button's side padding and spilling right).
+  The icon is now centred (0 px offset, measured) and the button matches the height of the box beside it.
+
 ## v1.8.0 — 2026-10-07
 
 ### Added

@@ -3117,6 +3117,24 @@ section[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"] {
 }
 section[data-testid="stSidebar"] button *,
 section[data-testid="stSidebar"] button p { color: #FFFFFF !important; }
+/* icon-only / narrow buttons: centre the content (Streamlit left-aligns it by default) */
+section[data-testid="stSidebar"] .stButton > button,
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px !important;
+    min-height: 2.5rem;
+}
+section[data-testid="stSidebar"] .stButton > button > div,
+section[data-testid="stSidebar"] .stButton > button span,
+section[data-testid="stSidebar"] .stButton > button p {
+    margin: 0 !important;
+    width: auto !important;
+    flex-shrink: 0;
+    white-space: nowrap;
+    text-align: center;
+}
 section[data-testid="stSidebar"] .stButton > button:hover { background: #4F46E5 !important; }
 
 /* ── File uploader ── */
@@ -3612,7 +3630,7 @@ with st.sidebar:
     _folder_name = Path(st.session_state.save_folder).name or st.session_state.save_folder
     with _card("💾", "Auto-save", f"on · {_folder_name}" if st.session_state["w_autosave"] else "off"):
         auto_save = st.toggle("Auto-save results after analysis", key="w_autosave")
-        col_path, col_btn = st.columns([5, 1])
+        col_path, col_btn = st.columns([4, 1])
         with col_path:
             st.session_state.save_folder = st.text_input("Save folder", value=st.session_state.save_folder)
         with col_btn:

@@ -2471,6 +2471,13 @@ def generate_video_title(explanation: str, full_transcript: str, ai_engine: str,
                            max_tokens=40).strip('"').strip("'")
 
 
+def _hist_set_all(stamps: list) -> None:
+    """on_change handler for the History 'select all' checkbox."""
+    value = bool(st.session_state.get("hist_sel_all_cb"))
+    for stamp in stamps:
+        st.session_state[f"hsel_{stamp}"] = value
+
+
 def auto_tag_history_entries(entries: list, default_folder: str, ai_engine: str, claude_key: str,
                              gemini_key: str, openai_key: str, progress=None) -> tuple:
     """AI-tag saved videos from their saved explanation. New tags are merged with existing ones (max 6).
@@ -3036,6 +3043,22 @@ footer    {visibility: hidden;}
 }
 [data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) label:has(input:checked) p { color: #4338CA; }
 [data-testid="stRadio"]:has([role="radiogroup"][aria-label="Mode"]) { display: flex; justify-content: center; }
+
+/* ── History list: tight single-line rows ── */
+.st-key-hist_rows { gap: 0 !important; border: 1px solid #E6E9F8; border-radius: 12px; overflow: hidden; }
+[class*="st-key-hrow_"] {
+    gap: 0 !important;
+    padding: 2px 10px;
+    border-bottom: 1px solid #EEF0FA;
+    background: #FFFFFF;
+}
+[class*="st-key-hrow_"]:last-child { border-bottom: none; }
+[class*="st-key-hrow_"]:hover { background: #F6F7FF; }
+[class*="st-key-hrow_open_"] { background: #EEF1FF; box-shadow: inset 3px 0 0 #6366F1; }
+[class*="st-key-hrow_"] [data-testid="stHorizontalBlock"] { gap: 0.6rem; align-items: center; }
+[class*="st-key-hrow_"] [data-testid="stCheckbox"] { margin: 0; min-height: 0; }
+[class*="st-key-hrow_"] [data-testid="stMarkdownContainer"] p { margin: 0; }
+[class*="st-key-hrow_"] button { min-height: 1.9rem !important; padding: 0 0.7rem !important; font-size: 0.83rem; }
 
 /* ── Section headings in the main area ── */
 section[data-testid="stMain"] h2 {
@@ -6261,70 +6284,72 @@ if _mode_key == "History":
 
         # ── Summary list: one compact row per video, each with a real Open button ──
         st.subheader("📊 Summary")
-        st.caption("☑ select rows to delete or tag them  ·  **📖 Open** reads that video's full report below "
-                   "(you can rename it from inside the report).")
+        st.caption("☑ select rows to delete or tag  ·  **📖 Open** shows the full report below (rename it there)")
 
         _hist_open_now = st.session_state.get("_hist_open")
+        _all_stamps = [e.get("stamp", "") for e in history]
 
-        _sa1, _sa2, _sa3 = st.columns([1.1, 1.1, 9])
-        with _sa1:
-            if st.button("☑ All", key="hist_sel_all", help="Select every video shown", width="stretch"):
-                for _e in history:
-                    st.session_state[f"hsel_{_e.get('stamp', '')}"] = True
-                st.rerun()
-        with _sa2:
-            if st.button("☐ None", key="hist_sel_none", help="Clear the selection", width="stretch"):
-                for _e in history:
-                    st.session_state[f"hsel_{_e.get('stamp', '')}"] = False
-                st.rerun()
+        # header line: one "select all" box above the row checkboxes
+        _h1, _h2 = st.columns([0.35, 9.65], vertical_alignment="center")
+        with _h1:
+            st.checkbox("Select all", key="hist_sel_all_cb", label_visibility="collapsed",
+                        on_change=_hist_set_all, args=(_all_stamps,), help="Select / clear every video shown")
+        with _h2:
+            st.markdown('<div style="color:#64748B;font-size:.78rem">Select all · '
+                        f'{len(history)} video(s)</div>', unsafe_allow_html=True)
 
         _sel_entries = []
-        for e in history:
-            _stamp = e.get("stamp", "")
-            _is_open = (_stamp == _hist_open_now)
-            with st.container(border=True):
-                _c_chk, _c_main, _c_meta, _c_btn = st.columns([0.4, 5, 3.7, 1.6], vertical_alignment="center")
-                with _c_chk:
-                    if st.checkbox("Select", key=f"hsel_{_stamp}", label_visibility="collapsed"):
-                        _sel_entries.append(e)
-                with _c_main:
-                    _chips = "".join(
-                        f'<span style="background:{_tag_colour(t)};color:#fff;padding:1px 9px;border-radius:10px;'
-                        f'font-size:11px;margin-right:4px;display:inline-block">{_html.escape(t)}</span>'
-                        for t in e.get("tags", []))
-                    st.markdown(
-                        f'<div style="font-weight:600;line-height:1.3">{_html.escape(os.path.splitext(e["video_name"])[0])}</div>'
-                        + (f'<div style="margin-top:3px">{_chips}</div>' if _chips else ""),
-                        unsafe_allow_html=True)
-                with _c_meta:
-                    st.caption(
-                        f"{e['analyzed_at']}  \n⏱ {fmt_time(e.get('video_duration_sec', 0))} · "
-                        f"📝 {e.get('word_count', 0):,} words · 📑 {e.get('chapter_count', 0)} · "
-                        f"🖼 {e.get('frame_count', 0)} · 🤖 {_fmt_analysis_time(e.get('analysis_time_sec', 0))}")
-                with _c_btn:
-                    if st.button("✖ Close" if _is_open else "📖 Open", key=f"hist_open_{_stamp}",
-                                 type="primary" if _is_open else "secondary", width="stretch"):
-                        if _is_open:
-                            st.session_state.pop("_hist_open", None)
-                        else:
-                            st.session_state["_hist_open"] = _stamp
-                        st.rerun()
+        with st.container(key="hist_rows"):
+            for e in history:
+                _stamp = e.get("stamp", "")
+                _is_open = (_stamp == _hist_open_now)
+                with st.container(key=f"hrow_open_{_stamp}" if _is_open else f"hrow_{_stamp}"):
+                    _c_chk, _c_main, _c_meta, _c_btn = st.columns([0.35, 5.2, 4.3, 1.15], vertical_alignment="center")
+                    with _c_chk:
+                        if st.checkbox("Select", key=f"hsel_{_stamp}", label_visibility="collapsed"):
+                            _sel_entries.append(e)
+                    with _c_main:
+                        _chips = "".join(
+                            f'<span style="background:{_tag_colour(t)};color:#fff;padding:0 8px;border-radius:9px;'
+                            f'font-size:10.5px;white-space:nowrap">{_html.escape(t)}</span>'
+                            for t in e.get("tags", []))
+                        st.markdown(
+                            '<div style="display:flex;align-items:center;gap:8px;min-width:0">'
+                            '<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+                            f'{_html.escape(os.path.splitext(e["video_name"])[0])}</span>{_chips}</div>',
+                            unsafe_allow_html=True)
+                    with _c_meta:
+                        st.markdown(
+                            '<div style="color:#64748B;font-size:.78rem;white-space:nowrap;overflow:hidden;'
+                            f'text-overflow:ellipsis">{_html.escape(e["analyzed_at"])} · '
+                            f'⏱ {fmt_time(e.get("video_duration_sec", 0))} · 📝 {e.get("word_count", 0):,} · '
+                            f'📑 {e.get("chapter_count", 0)} · 🖼 {e.get("frame_count", 0)} · '
+                            f'🤖 {_fmt_analysis_time(e.get("analysis_time_sec", 0))}</div>',
+                            unsafe_allow_html=True)
+                    with _c_btn:
+                        if st.button("✖ Close" if _is_open else "📖 Open", key=f"hist_open_{_stamp}",
+                                     type="primary" if _is_open else "secondary", width="stretch"):
+                            if _is_open:
+                                st.session_state.pop("_hist_open", None)
+                            else:
+                                st.session_state["_hist_open"] = _stamp
+                            st.rerun()
 
         # ── Row-level actions ─────────────────────────────────────────────────
-        _act_col1, _act_col2, _act_col3, _act_col4 = st.columns([2, 2, 2, 2])
+        _act_col1, _act_col2, _act_col3, _act_col4, _ = st.columns([1.3, 1.4, 1.9, 2.5, 3.4])
         with _act_col1:
-            if st.button("📂 Open Save Folder"):
+            if st.button("📂 Folder", help="Open the folder where results are saved", width="stretch"):
                 os.startfile(save_folder)
         _untagged = [e for e in history if not e.get("tags")]
         _auto_targets = None
         with _act_col3:
-            if st.button(f"🤖 Auto-tag selected ({len(_sel_entries)})" if _sel_entries else "🤖 Auto-tag selected",
-                         disabled=not _sel_entries, key="autotag_sel",
+            if st.button(f"🤖 Tag selected ({len(_sel_entries)})" if _sel_entries else "🤖 Tag selected",
+                         disabled=not _sel_entries, key="autotag_sel", width="stretch",
                          help="The AI reads each selected video's saved explanation and adds 2–4 topic tags."):
                 _auto_targets = _sel_entries
         with _act_col4:
-            if st.button(f"🤖 Auto-tag all untagged ({len(_untagged)})", disabled=not _untagged,
-                         key="autotag_all",
+            if st.button(f"🤖 Tag all untagged ({len(_untagged)})", disabled=not _untagged,
+                         key="autotag_all", width="stretch",
                          help="Tag every video that has no tags yet, using the AI engine chosen in the sidebar."):
                 _auto_targets = _untagged
         if _auto_targets:
@@ -6344,10 +6369,10 @@ if _mode_key == "History":
         with _act_col2:
             _del_disabled = len(_sel_entries) == 0
             _del_label = (
-                f"🗑️ Delete Selected ({len(_sel_entries)})"
-                if _sel_entries else "🗑️ Delete Selected"
+                f"🗑️ Delete ({len(_sel_entries)})"
+                if _sel_entries else "🗑️ Delete"
             )
-            if st.button(_del_label,
+            if st.button(_del_label, width="stretch",
                          disabled=_del_disabled,
                          help="Tick the ☑ on rows to select them, then click here to delete"):
                 st.session_state["_confirm_delete_stamps"] = [

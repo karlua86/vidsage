@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.9.1 — 2026-10-07
+
+### Changed
+- **Leaner History list.** Each video is now one 34 px line (was ~72 px cards plus gaps): a small checkbox, the title with
+  inline tag chips, one line of details and a compact Open button, on a single thin-ruled list with a highlighted open row.
+  Five videos take ~175 px instead of ~440 px. The two large ☑ All / ☐ None buttons became one *Select all* checkbox, and the
+  action buttons are shorter (📂 Folder · 🗑️ Delete (N) · 🤖 Tag selected (N) · 🤖 Tag all untagged (N)) and sit together.
+
 ## v1.9.0 — 2026-10-07
 
 ### Changed

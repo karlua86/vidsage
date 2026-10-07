@@ -1515,7 +1515,7 @@ def _pdf_render_md(pdf, text: str, fname: str):
 
 # ─────────────────────────────────────────────────────────────────────────────
 
-def export_word(video_name: str, explanation: str,
+def _export_word_uncached(video_name: str, explanation: str,
                 full_transcript: str, timestamped_transcript: str,
                 chapters: list = None) -> bytes:
     """Generate a formatted Word (.docx) document and return as bytes."""
@@ -1565,7 +1565,7 @@ def export_word(video_name: str, explanation: str,
     return buf.getvalue()
 
 
-def export_pdf(video_name: str, explanation: str,
+def _export_pdf_uncached(video_name: str, explanation: str,
                full_transcript: str, timestamped_transcript: str) -> bytes:
     """
     Generate a PDF using reportlab with CJK font support.
@@ -1763,6 +1763,24 @@ def export_pdf(video_name: str, explanation: str,
     ]
     doc.build(story, onFirstPage=_hf, onLaterPages=_hf)
     return buf.getvalue()
+
+
+# Word / PDF files are built from the report text, which rarely changes — but Streamlit re-runs the whole page on
+# every click, so an open report used to rebuild both files on each checkbox tick (0.2 s for a short report, 1 s+
+# for a long one).  st.cache_data keeps results across reruns (a plain module-level dict would be re-created on
+# every rerun), so each distinct report is built once.
+@st.cache_data(show_spinner=False, max_entries=24)
+def _export_cached(kind: str, args: tuple, kwargs: dict) -> bytes:
+    fn = _export_word_uncached if kind == "word" else _export_pdf_uncached
+    return fn(*args, **kwargs)                    # errors are raised and therefore never cached
+
+
+def export_word(*args, **kwargs):
+    return _export_cached("word", args, kwargs)
+
+
+def export_pdf(*args, **kwargs):
+    return _export_cached("pdf", args, kwargs)
 
 
 def fmt_time(seconds: float) -> str:
@@ -3046,6 +3064,11 @@ footer    {visibility: hidden;}
 
 /* ── History list: tight single-line rows ── */
 .st-key-hist_rows { gap: 0 !important; border: 1px solid #E6E9F8; border-radius: 12px; overflow: hidden; }
+.st-key-hist_head { background: #F5F6FF; border-bottom: 1px solid #E1E5F7; padding: 4px 10px; gap: 0 !important; }
+.st-key-hist_head [data-testid="stCheckbox"] { margin: 0; min-height: 0; }
+/* Streamlit gives text blocks a -16px bottom margin; inside a row it pushed the text below the centre line */
+[class*="st-key-hrow_"] [data-testid="stMarkdownContainer"],
+.st-key-hist_head [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 [class*="st-key-hrow_"] {
     gap: 0 !important;
     padding: 2px 10px;
@@ -6288,44 +6311,49 @@ if _mode_key == "History":
 
         _hist_open_now = st.session_state.get("_hist_open")
         _all_stamps = [e.get("stamp", "") for e in history]
-
-        # header line: one "select all" box above the row checkboxes
-        _h1, _h2 = st.columns([0.35, 9.65], vertical_alignment="center")
-        with _h1:
-            st.checkbox("Select all", key="hist_sel_all_cb", label_visibility="collapsed",
-                        on_change=_hist_set_all, args=(_all_stamps,), help="Select / clear every video shown")
-        with _h2:
-            st.markdown('<div style="color:#64748B;font-size:.78rem">Select all · '
-                        f'{len(history)} video(s)</div>', unsafe_allow_html=True)
+        _GRID = ("display:grid;grid-template-columns:minmax(150px,3.3fr) minmax(90px,2fr) 1.6fr .9fr .8fr .55fr .7fr .9fr;"
+                 "column-gap:12px;align-items:center;width:100%;min-width:0")
+        _CELL = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569;font-size:.82rem"
+        _COLS = [0.35, 10.4, 1.25]            # checkbox | the information grid | Open button
 
         _sel_entries = []
         with st.container(key="hist_rows"):
+            with st.container(key="hist_head"):
+                _h1, _h2, _h3 = st.columns(_COLS, vertical_alignment="center")
+                with _h1:
+                    st.checkbox("Select all", key="hist_sel_all_cb", label_visibility="collapsed",
+                                on_change=_hist_set_all, args=(_all_stamps,), help="Select / clear every video shown")
+                with _h2:
+                    st.markdown(
+                        f'<div style="{_GRID};color:#64748B;font-size:.7rem;font-weight:700;letter-spacing:.05em;'
+                        'text-transform:uppercase"><div>Video</div><div>Tags</div><div>Analysed</div><div>Duration</div>'
+                        '<div>Words</div><div>Ch.</div><div>Frames</div><div>AI time</div></div>',
+                        unsafe_allow_html=True)
             for e in history:
                 _stamp = e.get("stamp", "")
                 _is_open = (_stamp == _hist_open_now)
                 with st.container(key=f"hrow_open_{_stamp}" if _is_open else f"hrow_{_stamp}"):
-                    _c_chk, _c_main, _c_meta, _c_btn = st.columns([0.35, 5.2, 4.3, 1.15], vertical_alignment="center")
+                    _c_chk, _c_info, _c_btn = st.columns(_COLS, vertical_alignment="center")
                     with _c_chk:
                         if st.checkbox("Select", key=f"hsel_{_stamp}", label_visibility="collapsed"):
                             _sel_entries.append(e)
-                    with _c_main:
+                    with _c_info:
                         _chips = "".join(
                             f'<span style="background:{_tag_colour(t)};color:#fff;padding:0 8px;border-radius:9px;'
                             f'font-size:10.5px;white-space:nowrap">{_html.escape(t)}</span>'
                             for t in e.get("tags", []))
                         st.markdown(
-                            '<div style="display:flex;align-items:center;gap:8px;min-width:0">'
-                            '<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
-                            f'{_html.escape(os.path.splitext(e["video_name"])[0])}</span>{_chips}</div>',
-                            unsafe_allow_html=True)
-                    with _c_meta:
-                        st.markdown(
-                            '<div style="color:#64748B;font-size:.78rem;white-space:nowrap;overflow:hidden;'
-                            f'text-overflow:ellipsis">{_html.escape(e["analyzed_at"])} · '
-                            f'⏱ {fmt_time(e.get("video_duration_sec", 0))} · 📝 {e.get("word_count", 0):,} · '
-                            f'📑 {e.get("chapter_count", 0)} · 🖼 {e.get("frame_count", 0)} · '
-                            f'🤖 {_fmt_analysis_time(e.get("analysis_time_sec", 0))}</div>',
-                            unsafe_allow_html=True)
+                            f'<div style="{_GRID}">'
+                            f'<div style="{_CELL};color:#0F172A;font-weight:600;font-size:.9rem">'
+                            f'{_html.escape(os.path.splitext(e["video_name"])[0])}</div>'
+                            f'<div style="display:flex;gap:4px;overflow:hidden">{_chips}</div>'
+                            f'<div style="{_CELL}">{_html.escape(e["analyzed_at"])}</div>'
+                            f'<div style="{_CELL}">{fmt_time(e.get("video_duration_sec", 0))}</div>'
+                            f'<div style="{_CELL}">{e.get("word_count", 0):,}</div>'
+                            f'<div style="{_CELL}">{e.get("chapter_count", 0)}</div>'
+                            f'<div style="{_CELL}">{e.get("frame_count", 0)}</div>'
+                            f'<div style="{_CELL}">{_fmt_analysis_time(e.get("analysis_time_sec", 0))}</div>'
+                            '</div>', unsafe_allow_html=True)
                     with _c_btn:
                         if st.button("✖ Close" if _is_open else "📖 Open", key=f"hist_open_{_stamp}",
                                      type="primary" if _is_open else "secondary", width="stretch"):

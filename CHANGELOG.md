@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.9.2 — 2026-10-07
+
+### Fixed
+- **Ticking a checkbox with a report open was slow.** An open report rebuilt its Word and PDF files on every rerun, so each
+  click paid for that again (~0.2 s for a short report, 1 s or more for a long one). Word/PDF exports are now cached by content
+  (`st.cache_data`), so each distinct report is built once. Measured with a report open: 0.77–0.96 s → 0.67 s per tick, the
+  same as with no report open.
+- **Titles looked bottom-aligned.** Streamlit gives text blocks a −16 px bottom margin and a minimum height I had added made
+  the text overflow below the row's centre line (8 px low). Removed; titles, checkboxes and Open buttons now all sit at the
+  exact vertical centre (measured 0 px offset).
+
+### Changed
+- **History is a real table with column headings** — Video · Tags · Analysed · Duration · Words · Ch. · Frames · AI time — in
+  its own aligned columns (header and rows share one grid), with a header row holding the *select all* checkbox.
+
 ## v1.9.1 — 2026-10-07
 
 ### Changed

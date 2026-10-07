@@ -2125,6 +2125,13 @@ The most important facts, instructions, insights, or action items a viewer shoul
 ## 5. Summary
 A concise closing paragraph wrapping up what was covered.
 
+**FORMATTING STYLE (follow exactly):**
+- Keep the five section headings exactly as `## 1. …` to `## 5. …` — plain and numbered, with no emoji in these five headings.
+- In "Key Concepts / Topics": start every bullet with ONE fitting emoji, then a **bold term**, then a short explanation (for example `- 💰 **Cash flow:** why it matters`).
+- In "Detailed Breakdown": give each timestamped part its own heading `### 📍 MM:SS — short title`, then three bold labels: what is **shown on screen**, what is **said**, and your **analysis** (write these labels in the output language). Put direct quotes from the speaker as `>` blockquotes.
+- In "Key Takeaways": start each point with ✅ (things to do), ⚠️ (risks or warnings) or 💡 (insights).
+- Use bold for key terms. Do not add emojis anywhere else.
+
 Be thorough, use clear headings and bullet points. **Always complete ALL sections — do not stop mid-document.**
 {output_language_instruction}
 """
@@ -2153,6 +2160,9 @@ What is this video about? (2–3 sentences)
 ## 2. Key Concepts / Topics
 A bullet list of the main ideas, skills, or subjects covered.
 
+For the key-concept bullets: start every bullet with ONE fitting emoji, then a **bold term**, then a short explanation (for example `- 💰 **Cash flow:** why it matters`).
+Keep the two section headings exactly as `## 1. …` and `## 2. …` (plain, numbered, no emoji in the headings).
+
 Be concise but accurate. {output_language_instruction}
 """
 
@@ -2178,6 +2188,12 @@ The most important facts, instructions, insights, or action items a viewer shoul
 
 ## 5. Summary
 A concise closing paragraph wrapping up what was covered.
+
+**FORMATTING STYLE (follow exactly):**
+- Keep the three section headings exactly as `## 3. …`, `## 4. …`, `## 5. …` — plain and numbered, with no emoji in them.
+- In "Detailed Breakdown": give each timestamped part its own heading `### 📍 MM:SS — short title`, then three bold labels: what is **shown on screen**, what is **said**, and your **analysis** (write these labels in the output language). Put direct quotes from the speaker as `>` blockquotes.
+- In "Key Takeaways": start each point with ✅ (things to do), ⚠️ (risks or warnings) or 💡 (insights).
+- Use bold for key terms. Do not add emojis anywhere else.
 
 **CRITICAL: Complete ALL three sections from start to finish. Cover every topic in the lecture. Do NOT stop mid-document.**
 {output_language_instruction}

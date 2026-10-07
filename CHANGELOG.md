@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.6.3 — 2026-10-07
+
+### Changed
+- **Same explanation style on every AI engine.** Claude produced emoji bullets (💰 🏠 📊), `### 📍 00:04 — title`
+  headings and ✅ / ⚠️ / 💡 takeaways on its own, while DeepSeek and others wrote plain text, because the prompt
+  never asked for a style. The analysis prompts (single-pass and the two-pass slide version) now ask for it
+  explicitly: emoji key-concept bullets, `📍` time-stamped sub-headings with *on screen / said / analysis* labels,
+  quotes as blockquotes, and ✅ ⚠️ 💡 takeaways. The five main section headings stay plain and numbered so the
+  collapsible sections keep working. Verified on DeepSeek Flash and Gemini; Claude already wrote this style.
+  (Word/PDF exports still drop emojis that the fonts cannot draw.)
+
 ## v1.6.2 — 2026-10-07
 
 ### Fixed
